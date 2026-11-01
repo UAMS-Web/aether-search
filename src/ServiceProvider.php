@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UAMSWeb\AddonTemplate;
+namespace UAMSWeb\Aether\Search;
 
 use Statamic\Providers\AddonServiceProvider;
 
