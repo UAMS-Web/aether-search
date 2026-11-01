@@ -78,6 +78,18 @@ abstract class TestCase extends AddonTestCase
     }
 
     /**
+     * The view paths the test host searches ahead of its own: the fixture layout and host frames,
+     * plus any a subclass adds. Laravel reads `<view path>/vendor/<namespace>` when the add-on loads
+     * its views, so a path that holds an override has to be listed here, before the provider boots.
+     *
+     * @return list<string> Absolute view paths.
+     */
+    protected function viewPaths(): array
+    {
+        return [__DIR__.'/Fixtures/views'];
+    }
+
+    /**
      * The license-check cache directory for a parallel worker token, or null
      * outside a parallel run.
      *
@@ -97,6 +109,10 @@ abstract class TestCase extends AddonTestCase
      */
     protected function defineEnvironment($app): void
     {
+        // Give the application a layout and a host frame to render the search page in, and any
+        // further view paths a subclass adds before the add-on's provider boots
+        $app['config']->set('view.paths', [...$this->viewPaths(), ...(array) $app['config']->get('view.paths')]);
+
         // Set an encryption key for the session
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
 

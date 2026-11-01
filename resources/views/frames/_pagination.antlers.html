@@ -1,0 +1,21 @@
+{{#
+	@name  Frame: pagination
+	@desc  The default `pagination`: previous and next links over Statamic's `paginate` data, with
+	       today's Bootstrap 4 class names. The host's own pagination partial replaces it through
+	       `partials.pagination`.
+	@param paginate    Required. The `paginate` array of a paginated tag.
+	@param aria_label  Optional. Names the navigation.
+#}}
+{{ if paginate:total_pages > 1 }}
+	<nav aria-label="{{ aria_label ?? 'Pagination' }}">
+		<ul class="pagination">
+			{{ if paginate:prev_page }}
+				<li class="page-item"><a class="page-link" href="{{ paginate:prev_page }}" rel="prev">Previous</a></li>
+			{{ /if }}
+			<li class="page-item disabled"><span class="page-link">Page {{ paginate:current_page }} of {{ paginate:total_pages }}</span></li>
+			{{ if paginate:next_page }}
+				<li class="page-item"><a class="page-link" href="{{ paginate:next_page }}" rel="next">Next</a></li>
+			{{ /if }}
+		</ul>
+	</nav>
+{{ /if }}

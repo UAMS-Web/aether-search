@@ -1,0 +1,9 @@
+{{#
+	@name  Search Card: Generic
+	@desc  Fallback card for a search hit whose type has no dedicated wrapper — `pages`,
+	       `knowledge_bases`, and any other indexed type. Renders the shared
+	       compact card: an optional thumbnail, the title as a link, and a
+	       short excerpt, each escaped there. The result-type label above it comes
+	       from the row (`aether-search::listing/result`), so this card stays type-agnostic.
+#}}
+{{ partial:aether-search::cards/compact }}
