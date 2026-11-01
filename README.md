@@ -2,7 +2,16 @@
 
 Search for Statamic sites, part of the Aether ecosystem of UAMS Statamic add-ons.
 
-This repository was split out of [`UAMS-Web/uams-statamic`](https://github.com/UAMS-Web/uams-statamic) and is not released yet. It currently holds the add-on's scaffold (the service provider, the test and quality tooling, and the documentation set); the search code itself is moved in under its own ticket. This README describes only what exists, and grows as the add-on does.
+This repository was split out of [`UAMS-Web/uams-statamic`](https://github.com/UAMS-Web/uams-statamic) and is not released yet.
+
+## What it provides
+
+- A search page at `/search`, and under each additional site's URL prefix, with a search field, type tabs over your search indexes, a "this site or all sites" choice, a results listing with pagination, and an optional scoped-subtree mode. The form is a plain GET and works without JavaScript.
+- Type-ahead suggestions at `/!/search/suggestions`, with the script that drives them.
+- The `{{ aether_search }}` tag the page is built on.
+- Generic result cards, one per result row, that a host overrides one type at a time.
+
+It adds no search index of its own: the indexes are the host's `config/statamic/search.php`, and each tab names one.
 
 ## Requirements
 
@@ -19,6 +28,41 @@ The add-on registers itself through Statamic's add-on discovery. Its settings li
 ```bash
 php artisan vendor:publish --tag=aether-search-config
 ```
+
+## Configuration
+
+Publish `config/aether-search.php` and read the comment above each setting. With nothing set, the page renders in a plain frame with one "All results" tab over the `default` index, no type labels and no scoped mode. The settings are:
+
+- `tabs`: the type tabs, as search index handle to label. Each index must exist in `config/statamic/search.php`.
+- `labels`: the result-type label shown above each result, by collection handle (or a synthetic result's `result_type`).
+- `text`: the form label, placeholder and the hint shown before a query.
+- `layout` and `route_data`: the layout the page renders in and the data its routes hand the cascade.
+- `partials`: the host views that wrap the page. `article` and `entry_content` wrap the form and the results; `results_block`, `results_row` and `results_header` wrap only the results; `pagination` replaces the plain previous and next links. Left unset, each is a package view that adds no markup.
+- `scoped`: the scoped-subtree mode, off until `index` is set. Requesting that index with a value in the `parameter` request parameter searches one subtree through `query_scope`, a query scope the host registers, and replaces the tabs with hidden fields.
+- `always_scope`: a query scope every listing applies, such as one that hides entries the reader may not open.
+
+Composer merges the config at the top level, so a host that sets `tabs` lists every tab it wants.
+
+## Overriding a card
+
+A result's card is chosen by its `result_type`, then its `collection`, and the generic compact card renders when neither has one. To give one type its own card, put a view at `resources/views/vendor/aether-search/cards/_<type>.antlers.html` in the host. It wins for that type only; every other type keeps the package's card in the same render.
+
+## Seams
+
+Two interfaces let a host decide what the package cannot, with a default that needs no host code:
+
+- `UAMSWeb\Aether\Search\Contracts\EntryVisibility`: whether this reader may see an entry in the suggestions. The default shows every entry. Pair it with `always_scope` so the listing applies the same rule.
+- `UAMSWeb\Aether\Search\Contracts\SuggestionPresenter`: how a hit becomes a suggestion, for hits that are not entries. The default handles entries.
+
+Bind your own in a service provider's `register()`; the package binds its defaults only when you have not.
+
+## The type-ahead script
+
+The script is `resources/js/site-search-typeahead.js` in this package, with its test file beside it, and this package is its only home. It is an [Alpine](https://alpinejs.dev) component written for the `@alpinejs/csp` build. The host imports it from `vendor/uams-web/aether-search/resources/js/site-search-typeahead.js`, registers it with `Alpine.data('siteSearchTypeahead', ...)` and bundles it with its own assets; the package builds no front-end asset for it. Without the script the form is the plain GET above.
+
+## Markup and styling
+
+The page and cards use Bootstrap 4 class names (`form-row`, `nav-pills`, `card`, `stretched-link` and the like), so a host on Bootstrap 4 renders them with no change. This package ships no CSS for them. A host on another framework styles those classes itself or overrides the views.
 
 ## Development and submission
 

@@ -1,0 +1,235 @@
+{{#
+	@name  Site Search
+	@desc  The standalone search page. A search input plus a row of typed tabs that filter matches
+	       by search index; results render below with pagination. Each tab is a plain link to
+	       `?q=…&index=…`, so switching type re-runs the query server-side on reload with no
+	       JavaScript, and every tab URL is shareable. The form is a plain GET and works without the
+	       type-ahead script. Each site has this page under its own prefix, and scope links choose
+	       between this site and all of them; see `UAMSWeb\Aether\Search\Tags\AetherSearch`.
+
+	       The scoped-subtree mode (`scoped` in `config/aether-search.php`) is off until configured.
+	       Requesting the scoped index with a scope root replaces the type tabs with hidden scope
+	       fields and runs the listing through the configured query scope.
+
+	       Wrapped in the host's frames, named in `partials`; with none set the frames add no
+	       markup. The markup uses Bootstrap 4 class names and the package ships no CSS for them.
+#}}
+
+{{# The host's settings. A tag is the seam: a hard `{config:...}` read does not work in a view. #}}
+{{ $cfg = {aether_search:settings} }}
+
+{{# The query, already escaped, and empty when absent or an array (`?q[]=x`), which would throw an
+    uncaught TypeError in a modifier. The tag reads the live request. #}}
+{{ $q = {aether_search:query} }}
+
+{{# The query as it goes into a link's `q=` param. `$q` is already HTML-escaped, so it holds
+    `O&#039;Brien` for `O'Brien`. Encoding that directly would search
+    for the entity text, so it is decoded first. Safe in an href: `urlencode` escapes every
+    character that could close the attribute. #}}
+{{ $q_url = $q | decode | urlencode }}
+
+{{# The active index: a configured tab, or the scoped index with a scope root, else `default`. The
+    scope root is taken, and escaped, by the tag from the configured request parameter. #}}
+{{ $search_index = {aether_search:active_index} }}
+{{ $scope_root = {aether_search:scope_root} }}
+{{ $is_scoped = {aether_search:is_scoped :index="$search_index"} }}
+
+{{# How widely to search. `$search_scope` is one of the fixed scope values, never the raw
+    `get:scope`, and `$scope_query` is the `&scope=` pair for a link, empty at the default scope.
+    A link back to this page goes to `$search_path`, so it stays on the site the reader is on. #}}
+{{ $search_path = {aether_search:path} }}
+{{ $search_scope = {aether_search:active} }}
+{{ $scope_param = {aether_search:param :active="$search_scope"} }}
+{{ $scope_query = $scope_param ? ( '&amp;scope=' + $scope_param ) : '' }}
+{{ $search_site = ($search_scope == 'all') ? '*' : site:handle }}
+
+{{# The scoped mode has no scope choice, whatever the URL says. It searches every site, and the
+    subtree query scope is what bounds it. #}}
+{{ if $is_scoped }}
+	{{ $search_site = '*' }}
+	{{ $scope_param = '' }}
+	{{ $scope_query = '' }}
+{{ /if }}
+
+{{ partial:aether-search::frames/article :host="$cfg.partial_article" }}
+	{{ partial:aether-search::frames/entry-content :host="$cfg.partial_entry_content" content_width="false" }}
+
+		{{# Search form; GET back to this same route so a refined query re-renders in place. Capped
+		    and centered so the bar doesn't stretch edge to edge, and laid out as a `form-row`: the
+		    field and the button read as one bar on `md`+ but stack on narrow viewports. #}}
+		<form action="{{ $search_path }}" method="get" role="search" class="site-search-form mx-auto mb-3" style="max-width: 46rem;">
+			{{# A visible label names the field for every reader, where the placeholder alone
+			    disappears as soon as anything is typed. The labels are configuration. #}}
+			<label for="site-search-q" class="site-search-label font-weight-bold">{{ if $is_scoped }}{{ $cfg.scoped_form_label | sanitize }}{{ else }}{{ $cfg.form_label | sanitize }}{{ /if }}</label>
+			<div class="form-row">
+				<div class="col-12 col-md mb-2 mb-md-0">
+					{{ if $is_scoped }}
+						{{# Plain field, no type-ahead: the scoped search is bounded to one subtree,
+						    and the suggestions come from the unified index. #}}
+						<input
+							type="search"
+							class="form-control form-control-lg"
+							id="site-search-q"
+							name="q"
+							value="{{ $q | sanitize }}"
+							placeholder="{{ $cfg.placeholder | sanitize }}"
+							autofocus
+						>
+					{{ else }}
+						{{# Live type-ahead: `siteSearchTypeahead` (resources/js/site-search-typeahead.js)
+						    asks /!/search/suggestions as the reader types and lists the answers
+						    under the field, ARIA combobox + listbox. Without JavaScript this is the
+						    same plain field, and submitting the form still lands on the page.
+						    `data-index` is the validated active tab (never the raw `get:index`).
+						    Every binding names a property or method, never an inline expression,
+						    because the host runs the @alpinejs/csp build. #}}
+						<div class="site-search-typeahead position-relative" x-data="siteSearchTypeahead" data-index="{{ $search_index }}" data-search-path="{{ $search_path }}" data-scope="{{ $scope_param }}" @click.outside="close" @focusout="onFocusOut">
+							<input
+								type="search"
+								class="form-control form-control-lg"
+								id="site-search-q"
+								name="q"
+								value="{{ $q | sanitize }}"
+								placeholder="{{ $cfg.placeholder | sanitize }}"
+								autocomplete="off"
+								role="combobox"
+								aria-autocomplete="list"
+								aria-controls="site-search-suggestions"
+								:aria-expanded="expanded"
+								:aria-activedescendant="activeDescendant"
+								x-ref="input"
+								x-model="query"
+								@input="onInput"
+								@keydown.down.prevent="moveDown"
+								@keydown.up.prevent="moveUp"
+								@keydown.enter="onEnter"
+								@keydown.escape="onEscape"
+								autofocus
+							>
+							<ul
+								id="site-search-suggestions"
+								class="site-search-suggestions list-group position-absolute w-100 shadow-sm"
+								role="listbox"
+								aria-label="Search suggestions"
+								x-show="open"
+								style="display: none;"
+							>
+								<template x-for="(option, index) in options" :key="option.key">
+									<li
+										class="site-search-suggestion list-group-item list-group-item-action"
+										role="option"
+										:id="option.id"
+										:aria-selected="option.selected"
+										:class="option.className"
+										@mousedown.prevent="choose(index)"
+									>
+										<span class="site-search-suggestion-title" x-text="option.title"></span>
+										<span class="site-search-suggestion-type text-muted small" x-show="option.type" x-text="option.type"></span>
+									</li>
+								</template>
+							</ul>
+							<p class="sr-only" role="status" aria-live="polite" x-text="status"></p>
+						</div>
+					{{ /if }}
+				</div>
+				{{ if $is_scoped }}
+					{{# Scoped mode: no type filter. Carry the index and the scope root as hidden
+					    fields so a refined query re-runs still scoped. The field name is the
+					    configured request parameter. #}}
+					<input type="hidden" name="index" value="{{ $search_index }}">
+					<input type="hidden" name="{{ $cfg.scoped_parameter }}" value="{{ $scope_root }}">
+				{{ else }}
+					{{# Carry the active tab so a refined query stays on the same type.
+					    `$search_index` is one of the configured handles, never the raw `get:index`,
+					    so it is safe to reflect unescaped. #}}
+					<input type="hidden" name="index" value="{{ $search_index }}">
+					{{ if $scope_param }}
+						<input type="hidden" name="scope" value="{{ $scope_param }}">
+					{{ /if }}
+				{{ /if }}
+				<div class="col-12 col-md-auto">
+					{{# `text-nowrap`: the button never wraps. #}}
+					<button type="submit" class="btn btn-primary btn-lg btn-block text-nowrap">Search</button>
+				</div>
+			</div>
+		</form>
+
+		{{# Typed tabs: one plain link per configured tab, each re-running the current query against
+		    its own index on reload. Links rather than ARIA `role="tab"`, because a tab widget owes
+		    arrow-key handling that a zero-JS reload cannot provide; the active link carries
+		    `aria-current="page"`. A tab URL drops `page`, so switching type starts at page 1 of the
+		    new index. The query is `urlencode`d for the href (and fails closed to '' for an array
+		    `?q[]=`, above); the separator is `&amp;` because an href is an HTML attribute. Hidden in
+		    the scoped mode, which is already bounded to one subtree. #}}
+		{{ unless $is_scoped }}
+			{{ $tab_query = $q ? ( 'q=' + $q_url + '&amp;' ) : '' }}
+			{{# Scope links: plain links like the tabs, each keeping the query and the type and
+			    dropping `page`. The root site's name is configuration, so it is escaped on its way
+			    into the label. #}}
+			<nav class="site-search-scopes mx-auto mb-3" style="max-width: 46rem;" aria-label="Choose where to search">
+				<ul class="nav nav-pills site-search-tabs-list">
+					{{ aether_search:options :active="$search_scope" }}
+						<li class="nav-item">
+							<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ $search_index }}{{ if param }}&amp;scope={{ param }}{{ /if }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
+						</li>
+					{{ /aether_search:options }}
+				</ul>
+			</nav>
+			<nav class="site-search-tabs mx-auto mb-4" style="max-width: 46rem;" aria-label="Filter results by type">
+				<ul class="nav nav-pills site-search-tabs-list">
+					{{ aether_search:tabs :active="$search_index" }}
+						<li class="nav-item">
+							<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ handle }}{{ $scope_query }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
+						</li>
+					{{ /aether_search:tabs }}
+				</ul>
+			</nav>
+		{{ /unless }}
+
+		{{# In the scoped mode, tell the reader the search is bounded and offer a one-click broaden
+		    to the whole site (query preserved, url-encoded for the href). #}}
+		{{ if $is_scoped }}
+			<p class="site-search-scope-note text-muted text-center mb-4">
+				{{ $cfg.scoped_note | sanitize }}
+				<a href="{{ $cfg.scoped_broaden_url | sanitize }}?q={{ $q_url }}">{{ $cfg.scoped_broaden_label | sanitize }}</a>.
+			</p>
+		{{ /if }}
+
+		{{# Results render only once a query is present, inside the host's results frames, with the
+		    query echoed in the block's own heading. #}}
+		{{ if $q }}
+			{{# `sanitize` (htmlspecialchars) escapes the reflected query before it is echoed back
+			    in the heading: Antlers output is raw by default, so an un-escaped `q` here is a
+			    reflected-XSS sink. `$q` is the array-guarded value. #}}
+			{{ $results_query = $q | sanitize }}
+			{{ $results_heading = 'Search results for &ldquo;' + $results_query + '&rdquo;' }}
+			{{# Offered from a scoped empty state, with the same decoded and encoded query as the tab
+			    links; `&amp;` separates the params. #}}
+			{{ $all_results_url = $search_path + '?q=' + $q_url + '&amp;index=default' + $scope_query }}
+			{{# The wider scope, offered from the empty state on "This site". #}}
+			{{ $wider_scope_url = '' }}
+			{{ $wider_scope_label = '' }}
+			{{ if $search_scope == 'site' && ! $is_scoped }}
+				{{ $wider_scope_url = $search_path + '?q=' + $q_url + '&amp;index=' + $search_index + '&amp;scope=all' }}
+				{{ $root_site_name = {aether_search:root_name} }}
+				{{ $wider_scope_label = 'all of ' + ($root_site_name | sanitize) }}
+			{{ /if }}
+			{{ partial:aether-search::frames/results-block :host="$cfg.partial_results_block" block_class="site-search-results" background_color="bg-gray" }}
+				{{ partial:aether-search::frames/results-row :host="$cfg.partial_results_row" }}
+					{{ partial :src="$cfg.partial_results_header" :heading="$results_heading" }}
+					<div class="col-12">
+						{{ if $is_scoped }}
+							{{ partial:aether-search::listing/results :index="$search_index" :search_site="$search_site" :query_scope="$cfg.scoped_query_scope" :scope_root="$scope_root" :all_results_url="$all_results_url" :always_scope="$cfg.always_scope" :pagination="$cfg.partial_pagination" }}
+						{{ else }}
+							{{ partial:aether-search::listing/results :index="$search_index" :search_site="$search_site" :all_results_url="$all_results_url" :wider_scope_url="$wider_scope_url" :wider_scope_label="$wider_scope_label" :always_scope="$cfg.always_scope" :pagination="$cfg.partial_pagination" }}
+						{{ /if }}
+					</div>
+				{{ /partial:aether-search::frames/results-row }}
+			{{ /partial:aether-search::frames/results-block }}
+		{{ else }}
+			{{# Pre-query prompt, shown before the reader has searched. #}}
+			<p class="site-search-prompt text-muted text-center mb-0">Enter a search term above to get started.{{ if $cfg.prompt_hint && ! $is_scoped }} {{ $cfg.prompt_hint | sanitize }}{{ /if }}</p>
+		{{ /if }}
+
+	{{ /partial:aether-search::frames/entry-content }}
+{{ /partial:aether-search::frames/article }}

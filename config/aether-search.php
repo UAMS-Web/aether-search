@@ -4,27 +4,119 @@ declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
-| Add-on configuration
+| Aether Search configuration
 |--------------------------------------------------------------------------
 |
 | Statamic merges this file into the application's config under the add-on's
-| handle (the package name without its vendor: `aether-search`), so
-| `config('aether-search.some_key')` reads it. The host publishes it
-| to its own `config/` directory with:
+| handle (`aether-search`), so `config('aether-search.tabs')` reads it. The host
+| publishes it to its own `config/` directory with:
 |
 |     php artisan vendor:publish --tag=aether-search-config
 |
-| Rename this file to `config/<handle>.php` when the package is renamed. Delete
-| it, and the config test in `tests/Integration/ServiceProviderTest.php`, if the
-| add-on has no settings.
+| Composer merges the top level only: a key the host sets replaces the whole key,
+| so a host that sets `tabs` lists every tab it wants.
 |
-| Give every setting a comment saying what it does and which values it takes,
-| and a default that is safe to leave unset.
+| Every setting has a default that works with no application code. The search
+| page then renders in a plain frame, with one "All results" tab over the
+| `default` index, no scoped mode and no type labels. The markup keeps Bootstrap 4
+| class names and the package ships no CSS for them; see the README.
 |
 */
 
 return [
 
-    // 'some_key' => 'default',
+    /*
+    | The Control Panel-free front end: the layout the search page renders in
+    | (Statamic's route `layout`), and the data its routes hand the cascade. The
+    | page is registered at `/search` and under each additional site's URL prefix.
+    */
+    'layout' => 'layout',
+
+    'route_data' => [
+        'title' => 'Search',
+        'breadcrumb_leaf' => 'Search',
+        'published' => true,
+        'title_options' => 'normal',
+    ],
+
+    /*
+    | The type tabs: search index handle => label. `default` is the unified index
+    | and the fallback for any handle not listed here, so a tampered `?index=`
+    | never reaches an unconfigured index. Each handle other than `default` must
+    | be an index in the host's `config/statamic/search.php`.
+    */
+    'tabs' => [
+        'default' => 'All results',
+    ],
+
+    /*
+    | Result-type labels shown above each result: a collection handle (or the
+    | `result_type` of a synthetic result) => label. A type not listed here renders
+    | its card with no label rather than a guessed one. Labels are fixed strings,
+    | never editor text, so they are not escaped.
+    */
+    'labels' => [],
+
+    /*
+    | The heading above the search field, and the sentence shown before a query is
+    | entered. `prompt_hint` is appended to that sentence when set.
+    */
+    'text' => [
+        'form_label' => 'Search',
+        'placeholder' => 'Type to search…',
+        'prompt_hint' => '',
+    ],
+
+    /*
+    | The host's own views. A name is a view the host provides, wrapped around the
+    | page; `null` uses the package's plain default, which adds no markup, so the
+    | page renders with no host partial.
+    |
+    | The page has two frames, `article` and `entry_content`, that wrap the search
+    | form and the results. Three more wrap only the results: `results_block`
+    | (given `block_class` and `background_color`), `results_row` and
+    | `results_header` (given `heading`, already escaped). `pagination` is given
+    | `paginate` and `aria_label`.
+    */
+    'partials' => [
+        'article' => null,
+        'entry_content' => null,
+        'results_block' => null,
+        'results_row' => null,
+        'results_header' => null,
+        'pagination' => null,
+    ],
+
+    /*
+    | The scoped-subtree mode, off until `index` is set. A request for the scoped
+    | index with a value in the `parameter` request parameter searches only that
+    | subtree: the type tabs are replaced by hidden fields carrying the scope, and
+    | the listing runs through `query_scope`, a query scope the host registers. The
+    | page then offers a link back to `broaden_url`. Without a value for the
+    | parameter, the scoped index falls back to `default`.
+    */
+    'scoped' => [
+        'index' => null,
+        'parameter' => null,
+        'query_scope' => null,
+        'form_label' => 'Search this section',
+        'note' => 'Searches here are limited to this section.',
+        'broaden_label' => 'Search the whole site',
+        'broaden_url' => '/search',
+    ],
+
+    /*
+    | A query scope every listing applies, named as the host registered it, such as
+    | one that hides entries the reader may not open. A scoped listing's own scope
+    | runs alongside it. `null` applies none.
+    */
+    'always_scope' => null,
+
+    /*
+    | Type-ahead suggestions: the route's rate limit per client IP per minute.
+    */
+    'suggestions' => [
+        'per_minute' => 120,
+    ],
 
 ];
