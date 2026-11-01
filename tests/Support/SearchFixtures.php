@@ -29,7 +29,7 @@ final class SearchFixtures
     public static function indexOnePage(array $handles = [], string $title = 'Hello world', string $slug = 'hello-world'): string
     {
         // Name a collection for this call alone
-        $collectionHandle = 'pages_'.bin2hex(random_bytes(4));
+        $collectionHandle = 'pages_'.str_replace('.', '', uniqid('', true));
 
         // Give this call its own index directory
         $path = storage_path('framework/testing/search-'.uniqid('', true));
