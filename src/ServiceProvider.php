@@ -10,7 +10,11 @@ use Illuminate\Support\Facades\RateLimiter;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\Tags\Tags;
 use UAMSWeb\Aether\Search\Contracts\EntryVisibility;
+use UAMSWeb\Aether\Search\Contracts\ResponseAllowance;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
+use UAMSWeb\Aether\Search\External\ExternalResults;
+use UAMSWeb\Aether\Search\External\ExternalResultsProviders;
+use UAMSWeb\Aether\Search\External\NoAllowance;
 use UAMSWeb\Aether\Search\Support\EntrySuggestionPresenter;
 use UAMSWeb\Aether\Search\Support\ShowsEveryEntry;
 use UAMSWeb\Aether\Search\Tags\AetherSearch;
@@ -73,6 +77,16 @@ class ServiceProvider extends AddonServiceProvider
     ];
 
     /**
+     * Register the providers registry as a singleton in the register phase, so a host can add a
+     * provider from its own provider's `boot()` to the same instance.
+     */
+    #[\Override]
+    public function register(): void
+    {
+        $this->app->singleton(ExternalResultsProviders::class);
+    }
+
+    /**
      * Boot the add-on once Statamic has booted.
      *
      * The seams are bound only when the application has not bound its own, which it does while
@@ -82,6 +96,11 @@ class ServiceProvider extends AddonServiceProvider
     {
         $this->app->bindIf(EntryVisibility::class, ShowsEveryEntry::class);
         $this->app->bindIf(SuggestionPresenter::class, EntrySuggestionPresenter::class);
+        $this->app->bindIf(ResponseAllowance::class, NoAllowance::class);
+
+        // Check the configured external results provider once every provider has booted, so a host
+        // that registers its own in a provider's boot() is counted, and fail with the valid names
+        $this->app->booted(fn () => $this->app->make(ExternalResults::class)->validate());
 
         RateLimiter::for(
             self::SUGGESTIONS_LIMITER,

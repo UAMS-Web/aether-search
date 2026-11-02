@@ -40,8 +40,48 @@ Publish `config/aether-search.php` and read the comment above each setting. With
 - `partials`: the host views that wrap the page. `article` and `entry_content` wrap the form and the results; `results_block`, `results_row` and `results_header` wrap only the results; `pagination` replaces the plain previous and next links. Left unset, each is a package view that adds no markup.
 - `scoped`: the scoped-subtree mode, off until `index` is set. Requesting that index with a value in the `parameter` request parameter searches one subtree through `query_scope`, a query scope the host registers, and replaces the tabs with hidden fields.
 - `always_scope`: a query scope every listing applies, such as one that hides entries the reader may not open.
+- `external`: the external results scope, described below.
 
 Composer merges the config at the top level, so a host that sets `tabs` lists every tab it wants.
+
+## Sub-sites and the external results scope
+
+On a sub-site the search page and the type-ahead search that site by default, and the scope choices offer "all of" the root site. The type-ahead script reads `data-site` and `data-scope` from its element and sends them as `site` and `scope`, so the suggestions search the same sites the page does. A `q` that is not valid UTF-8 is treated as empty.
+
+The external results scope adds one more choice that hands the query to another search service, which renders its results in place. It is off until you turn it on:
+
+```php
+'external' => [
+    'enabled' => true,
+    'provider' => 'google',
+    'value' => 'google',
+    'label' => 'All UAMS websites',
+    'providers' => [
+        'google' => ['engine_id' => env('GOOGLE_SEARCH_ENGINE_ID')],
+    ],
+],
+```
+
+- `enabled`: `false` by default. A disabled scope is not offered, and a request that names it searches the site's own content.
+- `provider`: the registered provider's name, `google` by default. An unknown name fails when the application boots, with a message that names the valid providers.
+- `value` and `label`: the `?scope=` value and the choice's label.
+- `providers`: each provider's own settings, under its name.
+
+For Google Programmable Search the one setting is `engine_id`, read from the `GOOGLE_SEARCH_ENGINE_ID` environment variable. Without it the scope is not offered, and the add-on boots and works as it does with the scope off. The scope never applies to the scoped-subtree mode.
+
+### Adding a provider
+
+Implement `UAMSWeb\Aether\Search\Contracts\ExternalResultsProvider`: `isConfigured()` says whether the provider's settings are complete, `view()` names the partial that renders its results (given `settings`), and `needs()` declares what the provider must be allowed to load, by content security policy directive. Register it from a service provider's `boot()`:
+
+```php
+app(\UAMSWeb\Aether\Search\External\ExternalResultsProviders::class)->register('bing', BingResultsProvider::class);
+```
+
+and set `external.provider` to `bing`. If the provider's script needs a class on its own element, as Google's does, put the site's class on a wrapper.
+
+### Raising a response allowance
+
+The package does not know your content security policy. Bind `UAMSWeb\Aether\Search\Contracts\ResponseAllowance` in a service provider's `register()`, and its `raise($provider, $needs)` is called once for a request that renders a provider's results: the scope is on, the provider is configured and the request has a query. It is never called otherwise. The default does nothing.
 
 ## Overriding a card
 
@@ -49,10 +89,11 @@ A result's card is chosen by its `result_type`, then its `collection`, and the g
 
 ## Seams
 
-Two interfaces let a host decide what the package cannot, with a default that needs no host code:
+Three interfaces let a host decide what the package cannot, with a default that needs no host code:
 
 - `UAMSWeb\Aether\Search\Contracts\EntryVisibility`: whether this reader may see an entry in the suggestions. The default shows every entry. Pair it with `always_scope` so the listing applies the same rule.
 - `UAMSWeb\Aether\Search\Contracts\SuggestionPresenter`: how a hit becomes a suggestion, for hits that are not entries. The default handles entries.
+- `UAMSWeb\Aether\Search\Contracts\ResponseAllowance`: raises the host's own response allowance, such as a content security policy, for an external provider's results. The default does nothing.
 
 Bind your own in a service provider's `register()`; the package binds its defaults only when you have not.
 

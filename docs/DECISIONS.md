@@ -59,3 +59,15 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** Frames as a list setting nested in the shell: it needs nested same-name pairs. Reading `get:` in the view: it fails in a host that reuses one cascade across requests. A type-ahead script in each of the application and the package: two copies drift.
 
 **Companion.** `UAMS-Web/aether-search#3`.
+
+---
+
+## 2026-11-01: External results are a provider contract with a response-allowance hook
+
+**Decision.** The external results scope (Google Programmable Search first) is behind `ExternalResultsProvider`: a provider says whether it is configured, names the view that renders its results, and declares what it needs. A registry (`ExternalResultsProviders`) holds the providers by name, `google` built in; a host adds one from a provider's `boot()`. The scope is off by default, and is offered only when it is enabled and the provider is configured. An unknown provider name fails when the application boots. A `ResponseAllowance` contract, a no-op by default, is the hook an application implements to raise its content security policy; the package calls it only when it renders a provider's results.
+
+**Why.** The application's policy lives in the application, and the package must not name its middleware. A contract with a declared list keeps the package ignorant of the policy and the application ignorant of the provider. Failing at boot on an unknown name turns a typo into an error with the valid names, where a silent fallback would hide it. The registry is a singleton bound in `register()` so a host's `boot()` reaches the same instance the check later reads.
+
+**Rejected.** A config callback for the hook: a closure in config breaks `config:cache`. Naming the application's middleware in the package. A Google-only scope: a second provider would have to rewrite the tag and the shell.
+
+**Companion.** `UAMS-Web/aether-search#6`.

@@ -13,6 +13,7 @@ use Statamic\Search\Index;
 use Statamic\Search\QueryBuilder;
 use Statamic\Sites\Site as SiteInstance;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
+use UAMSWeb\Aether\Search\Tags\AetherSearch;
 
 /**
  * Type-ahead suggestions for the site-search input.
@@ -58,7 +59,8 @@ final class SuggestionsController
     public function __invoke(Request $request): JsonResponse
     {
         $raw = $request->query('q');
-        $query = \is_string($raw) ? trim($raw) : '';
+        // A query that is not valid UTF-8 is treated as empty, so it never reaches the index
+        $query = \is_string($raw) && mb_check_encoding($raw, 'UTF-8') ? trim($raw) : '';
         $length = mb_strlen($query);
 
         $requestedIndex = $request->query('index');
@@ -67,7 +69,10 @@ final class SuggestionsController
         $suggestions = [];
 
         if ($length >= self::MIN_QUERY_LENGTH && $length <= self::MAX_QUERY_LENGTH) {
-            $suggestions = $this->suggest($query, $index);
+            $site = $this->site($request->query('site'));
+            $everySite = AetherSearch::resolve($site, $request->query('scope')) !== AetherSearch::THIS_SITE;
+
+            $suggestions = $this->suggest($query, $index, $everySite ? null : $site);
         }
 
         return new JsonResponse([
@@ -75,6 +80,25 @@ final class SuggestionsController
             'index' => $index,
             'results' => $suggestions,
         ]);
+    }
+
+    /**
+     * The site the reader is searching from: the one `?site=` names, else the current site.
+     *
+     * @param  mixed  $requested  The raw `site` parameter.
+     */
+    private function site(mixed $requested): SiteInstance
+    {
+        $site = \is_string($requested) ? Site::get($requested) : null;
+
+        if ($site instanceof SiteInstance) {
+            return $site;
+        }
+
+        /** @var SiteInstance $current */
+        $current = Site::current();
+
+        return $current;
     }
 
     /**
@@ -97,9 +121,10 @@ final class SuggestionsController
      * Asks for twice {@see LIMIT} and trims after shaping, so a dropped hit does not leave the
      * flyout short while more matches exist.
      *
+     * @param  SiteInstance|null  $site  The one site to search, or null for every site.
      * @return list<array{title: string, url: string, type: string}>
      */
-    private function suggest(string $query, string $handle): array
+    private function suggest(string $query, string $handle, ?SiteInstance $site): array
     {
         /** @var Index $index */
         $index = Search::index($handle);
@@ -108,9 +133,7 @@ final class SuggestionsController
         /** @var QueryBuilder $builder */
         $builder = $index->search($query);
 
-        if (Site::hasMultiple()) {
-            /** @var SiteInstance $site */
-            $site = Site::current();
+        if ($site instanceof SiteInstance) {
             $builder->whereIn('site', [$site->handle()]);
         }
 
