@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Statamic\Entries\Collection;
 use Statamic\Facades\Antlers;
 
 /**
@@ -57,4 +58,23 @@ it('never builds a card name from a hostile type', function (): void {
 
     // Expect the generic card
     expect($html)->toContain('class="card search-card h-100"');
+});
+
+it('labels and cards a hit whose collection is a Collection object, as a search hit supplies it', function (): void {
+    // Name a collection whose handle is also a package card, and label it
+    $collection = new Collection;
+    $collection->handle('compact');
+    config(['aether-search.labels' => ['compact' => 'Compact page']]);
+
+    // Render a hit carrying the Collection object, not its handle
+    $html = (string) Antlers::parse('{{ partial:aether-search::listing/result }}', ['title' => 'A', 'url' => '/a', 'collection' => $collection], true);
+
+    // Expect the label from the handle
+    expect($html)->toContain('Compact page');
+
+    // Resolve the card the same way
+    $card = (string) Antlers::parse('{{ aether_search:card :collection="collection" }}', ['collection' => $collection], true);
+
+    // Expect the card named for the handle, not the generic fallback
+    expect(trim($card))->toBe('aether-search::cards/compact');
 });

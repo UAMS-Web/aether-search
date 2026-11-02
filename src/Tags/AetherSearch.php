@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace UAMSWeb\Aether\Search\Tags;
 
 use Illuminate\Support\Facades\View;
+use Statamic\Contracts\Entries\Collection as CollectionContract;
 use Statamic\Facades\Site;
 use Statamic\Facades\URL;
 use Statamic\Sites\Site as SiteObject;
@@ -312,8 +313,8 @@ class AetherSearch extends Tags
         $labels = config('aether-search.labels');
         $labels = is_array($labels) ? $labels : [];
 
-        foreach ([$this->parameters()->get('result_type'), $this->parameters()->get('collection')] as $type) {
-            if (is_string($type) && is_string($labels[$type] ?? null)) {
+        foreach ($this->types() as $type) {
+            if (is_string($labels[$type] ?? null)) {
                 return $labels[$type];
             }
         }
@@ -331,13 +332,37 @@ class AetherSearch extends Tags
      */
     public function card(): string
     {
-        foreach ([$this->parameters()->get('result_type'), $this->parameters()->get('collection')] as $type) {
-            if (is_string($type) && preg_match('/^[a-z0-9_]+$/', $type) === 1 && View::exists('aether-search::cards._'.$type)) {
+        foreach ($this->types() as $type) {
+            if (preg_match('/^[a-z0-9_]+$/', $type) === 1 && View::exists('aether-search::cards._'.$type)) {
                 return 'aether-search::cards/'.$type;
             }
         }
 
         return 'aether-search::cards/default';
+    }
+
+    /**
+     * The names a hit is labelled and carded by, in order: its `result_type`, then its `collection`.
+     *
+     * A search hit hands over its collection as a Collection object, a synthetic result as a string;
+     * both give the handle. Anything else is skipped.
+     *
+     * @return list<string>
+     */
+    private function types(): array
+    {
+        $types = [];
+
+        foreach (['result_type', 'collection'] as $key) {
+            $value = $this->parameters()->get($key);
+            $name = $value instanceof CollectionContract ? $value->handle() : $value;
+
+            if (is_string($name)) {
+                $types[] = $name;
+            }
+        }
+
+        return $types;
     }
 
     /**

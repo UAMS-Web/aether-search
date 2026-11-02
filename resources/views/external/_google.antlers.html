@@ -6,7 +6,7 @@
 	       Google's class stands alone on its element: `cse.js` replaces the element's classes, so the
 	       site's own class goes on a wrapper.
 #}}
-<script async src="https://cse.google.com/cse.js?cx={{ settings.engine_id | urlencode }}" nonce="{{ csp_nonce }}"></script>
+<script async src="https://cse.google.com/cse.js?cx={{ settings.engine_id | trim | urlencode }}" nonce="{{ csp_nonce }}"></script>
 <div class="site-search-google">
 	<div class="gcse-searchresults-only" data-queryParameterName="q"></div>
 </div>
