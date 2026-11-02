@@ -172,9 +172,9 @@
 			    into the label. #}}
 			<nav class="site-search-scopes mx-auto mb-3" style="max-width: 46rem;" aria-label="Choose where to search">
 				<ul class="nav nav-pills site-search-tabs-list">
-					{{ aether_search:options :active="$search_scope" }}
+					{{ aether_search:options :active="$search_scope" :index="$search_index" }}
 						<li class="nav-item">
-							<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ $search_index }}{{ if param }}&amp;scope={{ param }}{{ /if }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
+							<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ target_index }}{{ if param }}&amp;scope={{ param }}{{ /if }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
 						</li>
 					{{ /aether_search:options }}
 				</ul>

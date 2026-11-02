@@ -50,6 +50,17 @@ return [
     ],
 
     /*
+    | The collections each type tab covers: search index handle => list of collection
+    | handles. Under "This site" a page shows a tab only when its site carries at least one
+    | of the tab's collections, so a tab that cannot return a result there is not offered;
+    | under "All sites" every tab shows. A tab not listed here, and `default`, always show.
+    | A site's collections come from Statamic's site and collection configuration. The tabs,
+    | this map and `labels` are the one definition of the search scopes: the page, the
+    | `?index=` allow-list, the type-ahead and the result labels all read them.
+    */
+    'tab_collections' => [],
+
+    /*
     | Result-type labels shown above each result: a collection handle (or the
     | `result_type` of a synthetic result) => label. A type not listed here renders
     | its card with no label rather than a guessed one. Labels are fixed strings,

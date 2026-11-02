@@ -14,6 +14,7 @@ use Statamic\Tags\Parameters;
 use Statamic\Tags\Tags;
 use UAMSWeb\Aether\Search\Contracts\ResponseAllowance;
 use UAMSWeb\Aether\Search\External\ExternalResults;
+use UAMSWeb\Aether\Search\Support\SearchScopes;
 
 /**
  * `{{ aether_search:* }}`: the search page's logic, kept out of its Antlers.
@@ -167,11 +168,15 @@ class AetherSearch extends Tags
     /**
      * The scopes the current site offers, each marked against the `active` scope.
      *
-     * @return list<array{value: string, label: string, param: string, is_active: bool}>
+     * Each option carries the `target_index` its link lands on: the page's current index when that scope
+     * shows it, else `default`, so a link to "This site" never points at a tab it hides.
+     *
+     * @return list<array{value: string, label: string, param: string, target_index: string, is_active: bool}>
      */
     public function options(): array
     {
         $active = $this->parameters()->get('active');
+        $index = $this->parameters()->get('index');
 
         $scopes = [self::ALL_SITES => 'All of '.$this->rootName()];
 
@@ -191,6 +196,7 @@ class AetherSearch extends Tags
                 'value' => $value,
                 'label' => $label,
                 'param' => $this->paramFor($value),
+                'target_index' => $this->scopes()->index($index, $this->siteHandle(), $value),
                 'is_active' => $value === $active,
             ];
         }
@@ -219,7 +225,7 @@ class AetherSearch extends Tags
             return $this->scopeRoot() !== '' ? $scopedIndex : 'default';
         }
 
-        return array_key_exists($requested, $this->tabLabels()) ? $requested : 'default';
+        return $this->scopes()->index($requested, $this->siteHandle(), $this->active());
     }
 
     /**
@@ -260,7 +266,7 @@ class AetherSearch extends Tags
         $active = $this->parameters()->get('active');
 
         $tabs = [];
-        foreach ($this->tabLabels() as $handle => $label) {
+        foreach ($this->scopes()->visibleTabs($this->siteHandle(), $this->active()) as $handle => $label) {
             $tabs[] = ['handle' => $handle, 'label' => $label, 'is_active' => $handle === $active];
         }
 
@@ -310,16 +316,7 @@ class AetherSearch extends Tags
      */
     public function label(): string
     {
-        $labels = config('aether-search.labels');
-        $labels = is_array($labels) ? $labels : [];
-
-        foreach ($this->types() as $type) {
-            if (is_string($labels[$type] ?? null)) {
-                return $labels[$type];
-            }
-        }
-
-        return '';
+        return $this->scopes()->resultLabel($this->types());
     }
 
     /**
@@ -399,25 +396,6 @@ class AetherSearch extends Tags
     }
 
     /**
-     * The configured tabs as handle => label, with `default` always present and first.
-     *
-     * @return array<string, string>
-     */
-    private function tabLabels(): array
-    {
-        $tabs = config('aether-search.tabs');
-        $labels = [];
-
-        foreach (is_array($tabs) ? $tabs : [] as $handle => $label) {
-            if (is_string($label)) {
-                $labels[(string) $handle] = $label;
-            }
-        }
-
-        return ['default' => $labels['default'] ?? 'All results'] + $labels;
-    }
-
-    /**
      * The `scope` query value that selects a scope on the current site.
      */
     private function paramFor(mixed $scope): string
@@ -437,6 +415,22 @@ class AetherSearch extends Tags
     private function onRootSite(): bool
     {
         return $this->currentSite()->handle() === self::rootSite()->handle();
+    }
+
+    /**
+     * The handle of the site the reader is on.
+     */
+    private function siteHandle(): string
+    {
+        return $this->site();
+    }
+
+    /**
+     * The search scopes registry.
+     */
+    private function scopes(): SearchScopes
+    {
+        return app(SearchScopes::class);
     }
 
     /**
