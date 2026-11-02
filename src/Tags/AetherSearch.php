@@ -40,7 +40,7 @@ class AetherSearch extends Tags
      * Resolve the requested `?scope=`, falling back to the current site's default.
      *
      * A sub-site offers "This site" (the default) and "All of <root site's name>"; the root site
-     * offers only the second, so its default searches every site. Anything other than a scope this
+     * offers one scope, labelled "This site", which searches every site. Anything other than a scope this
      * site offers (an unknown string, or an array from `?scope[]=x`) falls back, so a hand-edited
      * URL cannot fail.
      */
@@ -178,11 +178,11 @@ class AetherSearch extends Tags
         $active = $this->parameters()->get('active');
         $index = $this->parameters()->get('index');
 
-        $scopes = [self::ALL_SITES => 'All of '.$this->rootName()];
-
-        if (! $this->onRootSite()) {
-            $scopes = [self::THIS_SITE => 'This site'] + $scopes;
-        }
+        // The root site has one scope, every site, and it reads "This site" as on a WordPress
+        // network's root; a sub-site offers "This site" and "All of <root site's name>"
+        $scopes = $this->onRootSite()
+            ? [self::ALL_SITES => 'This site']
+            : [self::THIS_SITE => 'This site', self::ALL_SITES => 'All of '.$this->rootName()];
 
         $external = app(ExternalResults::class);
 

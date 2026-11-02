@@ -50,7 +50,7 @@ it('searches every site from the root site and offers only that choice', functio
     expect(renderTag('{{ aether_search:active }}'))->toBe('all')
         ->and(renderTag('{{ aether_search:param active="all" }}'))->toBe('')
         ->and(renderTag('{{ aether_search:path }}'))->toBe('/search')
-        ->and(renderTag('{{ aether_search:options active="all" }}[{{ label }}]{{ /aether_search:options }}'))->toBe('[All of Main]');
+        ->and(renderTag('{{ aether_search:options active="all" }}[{{ label }}]{{ /aether_search:options }}'))->toBe('[This site]');
 });
 
 it('searches only the sub-site by default and offers both choices', function (): void {
