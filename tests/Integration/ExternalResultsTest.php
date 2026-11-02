@@ -89,6 +89,17 @@ it('renders the Google results in place when it is enabled with an engine ID', f
         ->and($html)->not->toContain('aria-label="Filter results by type"');
 });
 
+it('trims the engine ID before it goes into the script address', function (): void {
+    // Turn the scope on with an engine ID that carries spaces
+    googleScope('  abc123  ');
+
+    // Ask for the external scope with a query
+    $html = $this->get('/search?q=x&scope=google')->assertOk()->getContent();
+
+    // Expect the bare ID, not one with plus signs around it
+    expect($html)->toContain('cse.js?cx=abc123"')->and($html)->not->toContain('cx=+');
+});
+
 it('puts the site and the scope on the type-ahead', function (): void {
     // Request the page
     $html = $this->get('/search')->assertOk()->getContent();
