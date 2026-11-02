@@ -13,6 +13,7 @@ use Statamic\Search\Index;
 use Statamic\Search\QueryBuilder;
 use Statamic\Sites\Site as SiteInstance;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
+use UAMSWeb\Aether\Search\Support\SearchScopes;
 use UAMSWeb\Aether\Search\Tags\AetherSearch;
 
 /**
@@ -63,16 +64,16 @@ final class SuggestionsController
         $query = \is_string($raw) && mb_check_encoding($raw, 'UTF-8') ? trim($raw) : '';
         $length = mb_strlen($query);
 
-        $requestedIndex = $request->query('index');
-        $index = \is_string($requestedIndex) && \in_array($requestedIndex, self::indexes(), true) ? $requestedIndex : 'default';
-
         $suggestions = [];
 
-        if ($length >= self::MIN_QUERY_LENGTH && $length <= self::MAX_QUERY_LENGTH) {
-            $site = $this->site($request->query('site'));
-            $everySite = AetherSearch::resolve($site, $request->query('scope')) !== AetherSearch::THIS_SITE;
+        // The page and its type-ahead resolve the site and scope the same way
+        $site = $this->site($request->query('site'));
+        $scope = AetherSearch::resolve($site, $request->query('scope'));
+        $siteHandle = $site->handle();
+        $index = app(SearchScopes::class)->index($request->query('index'), \is_string($siteHandle) ? $siteHandle : '', $scope);
 
-            $suggestions = $this->suggest($query, $index, $everySite ? null : $site);
+        if ($length >= self::MIN_QUERY_LENGTH && $length <= self::MAX_QUERY_LENGTH) {
+            $suggestions = $this->suggest($query, $index, $scope === AetherSearch::THIS_SITE ? $site : null);
         }
 
         return new JsonResponse([
@@ -99,20 +100,6 @@ final class SuggestionsController
         $current = Site::current();
 
         return $current;
-    }
-
-    /**
-     * The indexes a suggestion may come from: the search page's configured type tabs.
-     * Anything else falls back to `default`, so a tampered `index` can never reach an
-     * unconfigured one.
-     *
-     * @return list<string>
-     */
-    public static function indexes(): array
-    {
-        $tabs = config('aether-search.tabs');
-
-        return array_values(array_unique(['default', ...array_map(strval(...), array_keys(\is_array($tabs) ? $tabs : []))]));
     }
 
     /**

@@ -71,3 +71,15 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** A config callback for the hook: a closure in config breaks `config:cache`. Naming the application's middleware in the package. A Google-only scope: a second provider would have to rewrite the tag and the shell.
 
 **Companion.** `UAMS-Web/aether-search#6`.
+
+---
+
+## 2026-11-02: The search scopes are one registry, and "This site" shows the tabs its site can fill
+
+**Decision.** The type tabs, the `?index=` allow-list on the page and on the suggestions endpoint, and the result-type labels read from one class, `SearchScopes`, fed by `tabs`, `tab_collections` and `labels` in the config. Under "This site" a tab shows only when the site carries one of its collections; "All results", tabs with no `tab_collections` entry, and every tab under a wider scope always show. A scope link keeps the current tab only when the target scope shows it. A host test can assert `unconfiguredIndexes()` is empty.
+
+**Why.** Six hand-written copies of one list meant a miss showed only at runtime, and tabs that cannot return a result were offered on sites that do not carry their collections. A site's collections come from Statamic's configuration, so the address a site answers on does not change the tabs. The rule asks only which sites the search covers, so it holds whether "This site" on a parent sub-site later covers its children or not; `SearchScopes::visibleTabs()` takes the site handle to change in that case.
+
+**Rejected.** Control-panel-configurable scopes, decided against in `UAMS-Web/uams-statamic#162`. Deriving a tab's collections from the index configuration: `searchables` can be a wildcard or a custom searchable, so the map is stated.
+
+**Companion.** `UAMS-Web/aether-search#12`, `UAMS-Web/uams-statamic#475`.

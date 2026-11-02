@@ -34,6 +34,7 @@ php artisan vendor:publish --tag=aether-search-config
 Publish `config/aether-search.php` and read the comment above each setting. With nothing set, the page renders in a plain frame with one "All results" tab over the `default` index, no type labels and no scoped mode. The settings are:
 
 - `tabs`: the type tabs, as search index handle to label. Each index must exist in `config/statamic/search.php`.
+- `tab_collections`: the collections each tab covers, as index handle to a list of collection handles. See "Search scopes" below.
 - `labels`: the result-type label shown above each result, by collection handle (or a synthetic result's `result_type`).
 - `text`: the form label, placeholder and the hint shown before a query.
 - `layout` and `route_data`: the layout the page renders in and the data its routes hand the cascade.
@@ -43,6 +44,20 @@ Publish `config/aether-search.php` and read the comment above each setting. With
 - `external`: the external results scope, described below.
 
 Composer merges the config at the top level, so a host that sets `tabs` lists every tab it wants.
+
+## Search scopes
+
+The search scopes are defined once, in `tabs`, `tab_collections` and `labels`, and everything else reads them: the tabs, the `?index=` allow-list on the page and on the type-ahead, and the result-type labels. Adding or renaming a scope is one edit there. Each scope is an index handle, a label, and the collections it covers; "All results" is the `default` index and covers everything.
+
+Under "This site" a page shows only the tabs its site can fill: "All results", and each tab with a collection that site carries. A site's collections come from Statamic's site and collection configuration, so the address a site answers on does not change them. Under "All sites", and on the root site, every tab shows. A tab with no entry in `tab_collections` always shows.
+
+A link between scopes keeps the current tab only when the target scope shows it, and otherwise lands on "All results". A hand-edited `?index=` that names a hidden or unknown tab falls back to `default` and answers normally, on the page and on the suggestions endpoint. The knowledge-base (scoped) search is unchanged.
+
+A scope must name an index in the host's `config/statamic/search.php`. `UAMSWeb\Aether\Search\Support\SearchScopes::unconfiguredIndexes()` lists the ones that do not, so a host test can assert it is empty:
+
+```php
+expect(app(\UAMSWeb\Aether\Search\Support\SearchScopes::class)->unconfiguredIndexes())->toBe([]);
+```
 
 ## Sub-sites and the external results scope
 
