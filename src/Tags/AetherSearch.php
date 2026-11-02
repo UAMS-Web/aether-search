@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace UAMSWeb\Aether\Search\Tags;
 
 use Illuminate\Support\Facades\View;
-use Statamic\Contracts\Entries\Collection as CollectionContract;
+use Statamic\Contracts\Entries\Collection as EntriesCollection;
 use Statamic\Facades\Site;
 use Statamic\Facades\URL;
 use Statamic\Sites\Site as SiteObject;
@@ -355,7 +355,7 @@ class AetherSearch extends Tags
 
         foreach (['result_type', 'collection'] as $key) {
             $value = $this->parameters()->get($key);
-            $name = $value instanceof CollectionContract ? $value->handle() : $value;
+            $name = $value instanceof EntriesCollection ? $value->handle() : $value;
 
             if (is_string($name)) {
                 $types[] = $name;
