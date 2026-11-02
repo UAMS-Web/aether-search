@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace UAMSWeb\Aether\Search\Tags;
 
 use Illuminate\Support\Facades\View;
-use Statamic\Contracts\Entries\Collection as EntriesCollection;
+use Statamic\Entries\Collection as EntriesCollection;
 use Statamic\Facades\Site;
 use Statamic\Facades\URL;
 use Statamic\Sites\Site as SiteObject;
