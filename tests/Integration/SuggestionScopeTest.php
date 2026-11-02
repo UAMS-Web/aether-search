@@ -106,6 +106,7 @@ it('links a hit from another site to its own site', function (): void {
     $collection = new Collection;
     $collection->handle('health_pages_'.str_replace('.', '', uniqid('', true)));
     $collection->save();
+
     $entry->collection($collection);
     $entry->data(['title' => 'Cardiology']);
 
