@@ -11,6 +11,8 @@ use Statamic\Sites\Site as SiteObject;
 use Statamic\Support\Html;
 use Statamic\Tags\Parameters;
 use Statamic\Tags\Tags;
+use UAMSWeb\Aether\Search\Contracts\ResponseAllowance;
+use UAMSWeb\Aether\Search\External\ExternalResults;
 
 /**
  * `{{ aether_search:* }}`: the search page's logic, kept out of its Antlers.
@@ -42,13 +44,80 @@ class AetherSearch extends Tags
      */
     public function active(): string
     {
-        if ($this->onRootSite()) {
+        return self::resolve($this->currentSite(), request()->query('scope'));
+    }
+
+    /**
+     * The scope a page on `$site` searches for a requested `?scope=` value.
+     *
+     * The suggestions controller calls this too, so the page and its type-ahead cannot disagree.
+     * The external results scope wins when it is offered and requested; the root site's one scope
+     * is every site; a sub-site is limited to itself unless it asks for every site.
+     *
+     * @param  SiteObject  $site  The site the page belongs to.
+     * @param  mixed  $requested  The raw `scope` query value.
+     * @return string One of {@see THIS_SITE}, {@see ALL_SITES} or the external scope's value.
+     */
+    public static function resolve(SiteObject $site, mixed $requested): string
+    {
+        $external = app(ExternalResults::class);
+
+        if ($external->isActive() && $requested === $external->value()) {
+            return $external->value();
+        }
+
+        if ($site->handle() === self::rootSite()->handle()) {
             return self::ALL_SITES;
         }
 
-        return request()->query('scope') === self::ALL_SITES
-            ? self::ALL_SITES
-            : self::THIS_SITE;
+        return $requested === self::ALL_SITES ? self::ALL_SITES : self::THIS_SITE;
+    }
+
+    /**
+     * Whether the page shows the external provider's results: the `scope` is the external scope and
+     * the `index` is not the scoped-subtree index, which ignores it.
+     */
+    public function isExternal(): bool
+    {
+        $external = app(ExternalResults::class);
+        $scopedIndex = $this->scoped('index');
+
+        return $external->isActive()
+            && $this->parameters()->get('scope') === $external->value()
+            && ($scopedIndex === '' || $this->parameters()->get('index') !== $scopedIndex);
+    }
+
+    /**
+     * The external provider's results view and settings, for a request that renders them.
+     *
+     * Calling it is what raises the response allowance, through the bound {@see ResponseAllowance},
+     * so the hook runs only when the results are about to render: the scope is on, the provider is
+     * configured, and the view calls this. It returns an empty array otherwise.
+     *
+     * @return array{view?: string, settings?: array<array-key, mixed>}
+     */
+    public function external(): array
+    {
+        $external = app(ExternalResults::class);
+        $provider = $external->provider();
+
+        if ($provider === null) {
+            return [];
+        }
+
+        app(ResponseAllowance::class)->raise($external->providerName(), $provider->needs());
+
+        return ['view' => $provider->view(), 'settings' => $external->providerSettings()];
+    }
+
+    /**
+     * The handle of the site the page belongs to, for the type-ahead to send back.
+     */
+    public function site(): string
+    {
+        $handle = $this->currentSite()->handle();
+
+        return is_string($handle) ? $handle : '';
     }
 
     /**
@@ -89,7 +158,7 @@ class AetherSearch extends Tags
      */
     public function rootName(): string
     {
-        $name = $this->rootSite()->name();
+        $name = self::rootSite()->name();
 
         return is_string($name) ? $name : '';
     }
@@ -107,6 +176,12 @@ class AetherSearch extends Tags
 
         if (! $this->onRootSite()) {
             $scopes = [self::THIS_SITE => 'This site'] + $scopes;
+        }
+
+        $external = app(ExternalResults::class);
+
+        if ($external->isActive()) {
+            $scopes[$external->value()] = $external->label();
         }
 
         $options = [];
@@ -322,6 +397,12 @@ class AetherSearch extends Tags
      */
     private function paramFor(mixed $scope): string
     {
+        $external = app(ExternalResults::class);
+
+        if ($external->isActive() && $scope === $external->value()) {
+            return $external->value();
+        }
+
         return $scope === self::ALL_SITES && ! $this->onRootSite() ? self::ALL_SITES : '';
     }
 
@@ -330,7 +411,7 @@ class AetherSearch extends Tags
      */
     private function onRootSite(): bool
     {
-        return $this->currentSite()->handle() === $this->rootSite()->handle();
+        return $this->currentSite()->handle() === self::rootSite()->handle();
     }
 
     /**
@@ -347,7 +428,7 @@ class AetherSearch extends Tags
     /**
      * The root site.
      */
-    private function rootSite(): SiteObject
+    private static function rootSite(): SiteObject
     {
         /** @var SiteObject $site */
         $site = Site::default();

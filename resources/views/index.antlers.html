@@ -43,6 +43,10 @@
 {{ $scope_query = $scope_param ? ( '&amp;scope=' + $scope_param ) : '' }}
 {{ $search_site = ($search_scope == 'all') ? '*' : site:handle }}
 
+{{# The external results scope (Google, say): the provider renders the results in place, so the type
+    tabs and the site listing do not apply. Never true for the scoped-subtree index. #}}
+{{ $is_external = {aether_search:is_external :scope="$search_scope" :index="$search_index"} }}
+
 {{# The scoped mode has no scope choice, whatever the URL says. It searches every site, and the
     subtree query scope is what bounds it. #}}
 {{ if $is_scoped }}
@@ -83,7 +87,7 @@
 						    `data-index` is the validated active tab (never the raw `get:index`).
 						    Every binding names a property or method, never an inline expression,
 						    because the host runs the @alpinejs/csp build. #}}
-						<div class="site-search-typeahead position-relative" x-data="siteSearchTypeahead" data-index="{{ $search_index }}" data-search-path="{{ $search_path }}" data-scope="{{ $scope_param }}" @click.outside="close" @focusout="onFocusOut">
+						<div class="site-search-typeahead position-relative" x-data="siteSearchTypeahead" data-index="{{ $search_index }}" data-search-path="{{ $search_path }}" data-site="{{ aether_search:site }}" data-scope="{{ $scope_param }}" @click.outside="close" @focusout="onFocusOut">
 							<input
 								type="search"
 								class="form-control form-control-lg"
@@ -175,15 +179,18 @@
 					{{ /aether_search:options }}
 				</ul>
 			</nav>
-			<nav class="site-search-tabs mx-auto mb-4" style="max-width: 46rem;" aria-label="Filter results by type">
-				<ul class="nav nav-pills site-search-tabs-list">
-					{{ aether_search:tabs :active="$search_index" }}
-						<li class="nav-item">
-							<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ handle }}{{ $scope_query }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
-						</li>
-					{{ /aether_search:tabs }}
-				</ul>
-			</nav>
+			{{# The external provider has no types to filter by. #}}
+			{{ unless $is_external }}
+				<nav class="site-search-tabs mx-auto mb-4" style="max-width: 46rem;" aria-label="Filter results by type">
+					<ul class="nav nav-pills site-search-tabs-list">
+						{{ aether_search:tabs :active="$search_index" }}
+							<li class="nav-item">
+								<a class="nav-link{{ if is_active }} active{{ /if }}" href="{{ $search_path }}?{{ $tab_query }}index={{ handle }}{{ $scope_query }}"{{ if is_active }} aria-current="page"{{ /if }}>{{ label | sanitize }}</a>
+							</li>
+						{{ /aether_search:tabs }}
+					</ul>
+				</nav>
+			{{ /unless }}
 		{{ /unless }}
 
 		{{# In the scoped mode, tell the reader the search is bounded and offer a one-click broaden
@@ -218,7 +225,12 @@
 				{{ partial:aether-search::frames/results-row :host="$cfg.partial_results_row" }}
 					{{ partial :src="$cfg.partial_results_header" :heading="$results_heading" }}
 					<div class="col-12">
-						{{ if $is_scoped }}
+						{{ if $is_external }}
+							{{# The hook raises the response's allowance here, and only here: the scope is
+							    on, configured, and has a query. #}}
+							{{ $external = {aether_search:external} }}
+							{{ partial :src="$external.view" :settings="$external.settings" }}
+						{{ elseif $is_scoped }}
 							{{ partial:aether-search::listing/results :index="$search_index" :search_site="$search_site" :query_scope="$cfg.scoped_query_scope" :scope_root="$scope_root" :all_results_url="$all_results_url" :always_scope="$cfg.always_scope" :pagination="$cfg.partial_pagination" }}
 						{{ else }}
 							{{ partial:aether-search::listing/results :index="$search_index" :search_site="$search_site" :all_results_url="$all_results_url" :wider_scope_url="$wider_scope_url" :wider_scope_label="$wider_scope_label" :always_scope="$cfg.always_scope" :pagination="$cfg.partial_pagination" }}
@@ -228,7 +240,7 @@
 			{{ /partial:aether-search::frames/results-block }}
 		{{ else }}
 			{{# Pre-query prompt, shown before the reader has searched. #}}
-			<p class="site-search-prompt text-muted text-center mb-0">Enter a search term above to get started.{{ if $cfg.prompt_hint && ! $is_scoped }} {{ $cfg.prompt_hint | sanitize }}{{ /if }}</p>
+			<p class="site-search-prompt text-muted text-center mb-0">Enter a search term above to get started.{{ if $cfg.prompt_hint && ! $is_scoped && ! $is_external }} {{ $cfg.prompt_hint | sanitize }}{{ /if }}</p>
 		{{ /if }}
 
 	{{ /partial:aether-search::frames/entry-content }}

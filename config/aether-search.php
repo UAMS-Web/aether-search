@@ -113,6 +113,27 @@ return [
     'always_scope' => null,
 
     /*
+    | The external results scope: a "search elsewhere" choice beside "This site" and the
+    | root site, answered by a provider that renders the results in place. Off until
+    | `enabled` is true. `provider` names a registered provider (`google` is built in);
+    | an unknown name fails at boot, naming the valid ones. `value` is the `?scope=` value
+    | and `label` the choice's label. `providers` holds each provider's own settings under
+    | its name. The scope is offered only when the provider is configured: for Google, when
+    | `GOOGLE_SEARCH_ENGINE_ID` is set. Without it the choice does not appear.
+    */
+    'external' => [
+        'enabled' => false,
+        'provider' => 'google',
+        'value' => 'google',
+        'label' => 'External results',
+        'providers' => [
+            'google' => [
+                'engine_id' => env('GOOGLE_SEARCH_ENGINE_ID'),
+            ],
+        ],
+    ],
+
+    /*
     | Type-ahead suggestions: the route's rate limit per client IP per minute.
     */
     'suggestions' => [
