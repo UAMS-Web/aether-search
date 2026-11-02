@@ -35,3 +35,27 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** Snapshotting the synced files into the template: every new add-on would begin with a stale copy that conflicts with its first sync pull request. Copying a license from an existing add-on: legal has not decided which license applies.
 
 **Companion.** `UAMS-Web/uams-statamic#261`.
+
+---
+
+## 2026-11-01: Keep the config file as `config/aether-search.php`
+
+**Decision.** The add-on keeps the template's placeholder config file, renamed `config/aether-search.php`, with the publish tag `aether-search-config`. It holds no settings yet.
+
+**Why.** A search add-on will have settings (indexes, result limits and the like), and keeping the file keeps the handle, the publish tag and `tests/Integration/ServiceProviderTest.php` in step from the first release. Removing it now would mean adding it back when the search code moves in.
+
+**Rejected.** Deleting the file and its test until a setting exists: it churns the handle and tag twice for no gain.
+
+**Companion.** `UAMS-Web/aether-search#2`.
+
+---
+
+## 2026-11-01: The search move lands as views, tag and controller in this package, with settings for what the host decides
+
+**Decision.** The shell, listing, result row and generic cards ship in this package under the `aether-search` view namespace. The tag is `aether_search`. The suggestions controller moves with two seams (`EntryVisibility`, `SuggestionPresenter`). The type-ahead script has one home, this package, and the host imports it. The host's frames, tabs, labels, scoped mode and always-on scope are settings in `config/aether-search.php`. The host overrides only type cards, through `resources/views/vendor/aether-search/cards/`.
+
+**Why.** The decision is S1 (V4 with a generic scoped mode) in `UAMS-Web/uams-statamic`. Three mechanics came out of building it. Antlers pairs a closing `partial` tag with the nearest `partial`, so two dynamic `partial` pairs cannot nest in one document: each frame is a view of its own with a static name and one dynamic pair inside. A namespaced partial needs a subdirectory (`listing/results`), because Statamic derives the underscore-prefixed file name from the last dot-separated segment. The tag reads the query, index and scope from the live request, not the view cascade's `get`, which a long-lived process or test host holds stale.
+
+**Rejected.** Frames as a list setting nested in the shell: it needs nested same-name pairs. Reading `get:` in the view: it fails in a host that reuses one cascade across requests. A type-ahead script in each of the application and the package: two copies drift.
+
+**Companion.** `UAMS-Web/aether-search#3`.

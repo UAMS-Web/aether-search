@@ -80,7 +80,7 @@ it('states the namespace convention, with the Aether level, the PSR-4 link and t
 it('points the development guide at the README paragraph on the namespace', function (): void {
     // Expect the guide to link the README step that holds the rule
     expect((string) file_get_contents(dirname(__DIR__, 2).'/docs/DEVELOPMENT.md'))
-        ->toContain('(../README.md#1-generate-and-rename)');
+        ->toContain('(../README.md#namespace)');
 });
 
 it('links the files it points readers to, and they exist', function (): void {

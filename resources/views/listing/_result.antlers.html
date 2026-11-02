@@ -1,0 +1,23 @@
+{{#
+	@name  Search Result Row
+	@desc  One search hit in the results list: a result-type label, then the hit's card. The label
+	       comes from `labels` in the config, keyed by the hit's `result_type` and then its
+	       `collection`; a type with no label renders its card with no label rather than a guessed
+	       one. The labels are fixed strings, never editor text, so they need no escaping.
+
+	       Dispatch: `aether_search:card` resolves the card by the hit's `result_type`, then its
+	       `collection`, through the view finder, so a card at
+	       `resources/views/vendor/aether-search/cards/_<type>` in the host wins for that type, the
+	       package serves every other, and a type with no card renders the generic compact card.
+	       Expects one search hit in scope.
+#}}
+
+{{ $result_type_label = {aether_search:label :result_type="result_type" :collection="collection"} }}
+{{ $result_card = {aether_search:card :result_type="result_type" :collection="collection"} }}
+
+<div class="search-result mb-4">
+	{{ if $result_type_label }}
+		<p class="search-result-type text-uppercase text-muted small mb-1">{{ $result_type_label }}</p>
+	{{ /if }}
+	{{ partial :src="$result_card" }}
+</div>

@@ -1,0 +1,47 @@
+{{#
+	@name  Search Results Listing
+	@desc  The search-results listing. Runs the `local` `search:results` tag for the given index and
+	       renders each hit as a full-width result row, then the pagination.
+	@param index        Required. The search-index handle to query (e.g. `default`, `people`).
+	@param query_scope  Optional. A registered query Scope to constrain results, the scoped mode's
+	                    subtree scope. It runs alongside `always_scope`.
+	@param scope_root   Optional. A value forwarded to the query scope: the entry id the subtree
+	                    search is rooted at.
+	@param always_scope Optional. A registered query Scope every listing applies, such as one that
+	                    hides entries the reader may not open (`always_scope` in the config).
+	@param all_results_url  Optional. A page url re-running the query against the unified `default`
+	                    index, offered from a scoped empty state. Built by the caller with the query
+	                    already `urlencode`d, so it is safe in an href.
+	@param search_site  Optional. The `site` of the search: `*` for every site, or a site handle.
+	                    Defaults to the current site.
+	@param wider_scope_url    Optional. A page url re-running the query at the wider scope, offered
+	                    from the empty state. Safe in an href, as above.
+	@param wider_scope_label  Optional. Names the wider scope in that link, already escaped.
+	@param pagination   Optional. The pagination partial; the package's plain one by default.
+#}}
+
+{{# Every listing applies the host's always-on scope, then a caller's own scope runs alongside it. #}}
+{{ $result_scopes = always_scope ? always_scope : '' }}
+{{ if query_scope }}
+	{{ $result_scopes = $result_scopes ? ($result_scopes + '|' + query_scope) : query_scope }}
+{{ /if }}
+{{ $result_site = search_site ? search_site : site:handle }}
+{{ $pagination_partial = pagination ? pagination : 'aether-search::frames/pagination' }}
+{{ search:results :index="index" :site="$result_site" :query_scope="$result_scopes" :scope_root="scope_root" as="results" paginate="10" }}
+	{{ if no_results }}
+		{{# No matches for this query and type; nudge the reader to broaden it, with a link to the
+		    unified index when this search was scoped. #}}
+		<p class="search-results-empty text-muted">No results found. Try a different search term{{ if index != 'default' && all_results_url }} or <a href="{{ all_results_url }}">search all results</a>{{ /if }}{{ if wider_scope_url }} or <a href="{{ wider_scope_url }}">search {{ wider_scope_label }}</a>{{ /if }}.</p>
+	{{ else }}
+		{{# One full-width result per row (not a grid): the cards fill their container because this
+		    list is deliberately not a `.card-list`. No ItemList microdata: a type's own card
+		    carries its own. #}}
+		<div class="search-results module-body">
+			{{ results }}
+				{{ partial:aether-search::listing/result }}
+			{{ /results }}
+		</div>
+
+		{{ partial :src="$pagination_partial" :paginate="paginate" aria_label="Search results pagination" }}
+	{{ /if }}
+{{ /search:results }}

@@ -1,0 +1,12 @@
+{{#
+	@name  Frame: results block
+	@desc  Wraps what it is given in the host partial named by the `partials.results_block` setting. The shell cannot nest
+	       two dynamic `partial` pairs in one document (Antlers pairs a closing tag with the nearest
+	       `partial`), so each frame is a document of its own: one static name per frame, one dynamic
+	       pair inside it. With the setting unset the host partial is the package's pass-through.
+	@param host  Required. The view that wraps the content, from the setting.
+	@param block_class, background_color  Optional. Forwarded to the host partial.
+#}}
+{{ partial :src="host" :block_class="block_class" :background_color="background_color" }}
+	{{ slot }}
+{{ /partial }}

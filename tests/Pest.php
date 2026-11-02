@@ -11,6 +11,11 @@
 
 declare(strict_types=1);
 
-use UAMSWeb\AddonTemplate\Tests\TestCase;
+use UAMSWeb\Aether\Search\Tests\OverridingTestCase;
+use UAMSWeb\Aether\Search\Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Integration');
+
+// A host that overrides a card needs its view path before the provider boots, so those tests have a
+// base class of their own.
+pest()->extend(OverridingTestCase::class)->in('Overriding');
