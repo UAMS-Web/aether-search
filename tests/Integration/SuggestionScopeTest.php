@@ -16,7 +16,18 @@ use UAMSWeb\Aether\Search\Tests\Support\FakeSearchIndex;
  */
 
 /**
- * Define a root site and a `/health` sub-site, and answer the suggestions route's index with a fake.
+ * Define a root site and a `/health` sub-site.
+ */
+function defineTwoSites(): void
+{
+    Site::setSites([
+        'default' => ['name' => 'Main', 'url' => '/', 'locale' => 'en_US'],
+        'health' => ['name' => 'Health', 'url' => '/health/', 'locale' => 'en_US'],
+    ]);
+}
+
+/**
+ * Define the two sites, and answer the suggestions route's index with a fake.
  *
  * @param  list<object>  $hits  What the fake index answers with.
  * @return FakeSearchIndex The fake, to inspect after the request.
@@ -24,10 +35,7 @@ use UAMSWeb\Aether\Search\Tests\Support\FakeSearchIndex;
 function fakeIndexOnTwoSites(array $hits = []): FakeSearchIndex
 {
     // Define the two sites
-    Site::setSites([
-        'default' => ['name' => 'Main', 'url' => '/', 'locale' => 'en_US'],
-        'health' => ['name' => 'Health', 'url' => '/health/', 'locale' => 'en_US'],
-    ]);
+    defineTwoSites();
 
     // Hand the route the fake
     $index = new FakeSearchIndex($hits);
@@ -87,17 +95,18 @@ it('treats a query that is not valid UTF-8 as empty', function (): void {
 });
 
 it('links a hit from another site to its own site', function (): void {
-    // Answer with an entry that belongs to the sub-site
+    // Answer with an entry of the sub-site, whose URL carries that site's prefix
+    $entry = new class extends Entry
+    {
+        public function url(): string
+        {
+            return '/health/cardiology';
+        }
+    };
     $collection = new Collection;
     $collection->handle('health_pages_'.str_replace('.', '', uniqid('', true)));
-    $collection->sites(['default', 'health']);
-    $collection->routes(['default' => '{slug}', 'health' => '{slug}']);
     $collection->save();
-
-    $entry = new Entry;
     $entry->collection($collection);
-    $entry->locale('health');
-    $entry->slug('cardiology');
     $entry->data(['title' => 'Cardiology']);
 
     fakeIndexOnTwoSites([new Result($entry, 'entry')]);
@@ -105,6 +114,6 @@ it('links a hit from another site to its own site', function (): void {
     // Ask from the root site for every site
     $response = $this->getJson('/!/search/suggestions?q=cardio&site=default&scope=all');
 
-    // Expect the link under the sub-site's prefix
+    // Expect the suggestion to link where the entry lives, not under the site asked from
     expect($response->assertOk()->json('results.0.url'))->toBe('/health/cardiology');
 });
