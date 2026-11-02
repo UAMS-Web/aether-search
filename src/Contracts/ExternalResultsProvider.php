@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace UAMSWeb\Aether\Search\Contracts;
 
+use UAMSWeb\Aether\Search\External\ExternalResultsProviders;
+
 /**
  * An external search that supplies the results of the "external results" scope in place of the
  * site's own.
  *
- * A provider is registered by name with {@see \UAMSWeb\Aether\Search\External\ExternalResultsProviders}
+ * A provider is registered by name with {@see ExternalResultsProviders}
  * and selected by `aether-search.external.provider`. Its settings live under
  * `aether-search.external.providers.<name>` and are handed to it as an array.
  */

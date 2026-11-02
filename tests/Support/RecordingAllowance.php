@@ -19,7 +19,7 @@ final class RecordingAllowance implements ResponseAllowance
     public array $calls = [];
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function raise(string $provider, array $needs): void
     {

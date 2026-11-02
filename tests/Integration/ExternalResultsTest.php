@@ -75,7 +75,7 @@ it('offers no external scope while it is enabled with no engine ID', function ()
 
 it('renders the Google results in place when it is enabled with an engine ID', function (): void {
     // Turn the scope on with an engine
-    googleScope('abc 123');
+    googleScope('abc:123');
 
     // Ask for the external scope with a query
     $html = $this->get('/search?q=x&scope=google')->assertOk()->getContent();
@@ -83,7 +83,7 @@ it('renders the Google results in place when it is enabled with an engine ID', f
     // Expect the choice, the script with the encoded engine, Google's class alone on its element
     // inside the site's wrapper, and no type tabs
     expect($html)->toContain('All UAMS websites')
-        ->and($html)->toContain('src="https://cse.google.com/cse.js?cx=abc%20123"')
+        ->and($html)->toContain('src="https://cse.google.com/cse.js?cx=abc%3A123"')
         ->and($html)->toContain('<div class="site-search-google">')
         ->and($html)->toContain('<div class="gcse-searchresults-only" data-queryParameterName="q"></div>')
         ->and($html)->not->toContain('aria-label="Filter results by type"');
@@ -122,7 +122,7 @@ it('fails at boot for a provider name nobody registered, naming the valid ones',
     config(['aether-search.external.provider' => 'nope']);
 
     // Expect the failure to name it and the valid ones
-    expect(fn () => (new ServiceProvider(app()))->bootAddon())
+    expect(fn () => new ServiceProvider(app())->bootAddon())
         ->toThrow(InvalidArgumentException::class, 'Unknown aether-search external results provider "nope". Valid providers: google.');
 });
 
@@ -131,9 +131,9 @@ it('boots with no engine ID set, with the scope off or on', function (): void {
     expect(config('aether-search.external.providers.google.engine_id'))->toBeNull()
         ->and(app(ExternalResults::class)->isActive())->toBeFalse();
 
-    (new ServiceProvider(app()))->bootAddon();
+    new ServiceProvider(app())->bootAddon();
     googleScope(null);
-    (new ServiceProvider(app()))->bootAddon();
+    new ServiceProvider(app())->bootAddon();
 
     expect(app(ExternalResults::class)->isActive())->toBeFalse();
 });

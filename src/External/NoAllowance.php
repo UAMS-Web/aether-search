@@ -12,7 +12,7 @@ use UAMSWeb\Aether\Search\Contracts\ResponseAllowance;
 final class NoAllowance implements ResponseAllowance
 {
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function raise(string $provider, array $needs): void {}
 }

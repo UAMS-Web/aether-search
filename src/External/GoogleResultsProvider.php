@@ -16,7 +16,7 @@ use UAMSWeb\Aether\Search\Contracts\ExternalResultsProvider;
 final class GoogleResultsProvider implements ExternalResultsProvider
 {
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function isConfigured(array $settings): bool
     {
@@ -24,7 +24,7 @@ final class GoogleResultsProvider implements ExternalResultsProvider
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function view(): string
     {
@@ -36,7 +36,7 @@ final class GoogleResultsProvider implements ExternalResultsProvider
      * which a nonce cannot cover, and its element calls `eval()` for each result. Its three inline
      * style elements are deliberately not asked for: results render without them.
      *
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function needs(): array
     {

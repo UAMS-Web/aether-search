@@ -89,9 +89,10 @@ it('treats a query that is not valid UTF-8 as empty', function (): void {
 it('links a hit from another site to its own site', function (): void {
     // Answer with an entry that belongs to the sub-site
     $collection = new Collection;
-    $collection->handle('health_pages');
+    $collection->handle('health_pages_'.str_replace('.', '', uniqid('', true)));
     $collection->sites(['default', 'health']);
     $collection->routes(['default' => '{slug}', 'health' => '{slug}']);
+    $collection->save();
 
     $entry = new Entry;
     $entry->collection($collection);

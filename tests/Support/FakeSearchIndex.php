@@ -66,21 +66,16 @@ final class FakeSearchIndex
 
     /**
      * Accept an equality constraint.
-     *
-     * @param  string  $column  The field constrained.
-     * @param  mixed  $value  The value required.
      */
-    public function where(string $column, mixed $value): self
+    public function where(): self
     {
         return $this;
     }
 
     /**
      * Accept a limit.
-     *
-     * @param  int  $limit  The most hits to return.
      */
-    public function limit(int $limit): self
+    public function limit(): self
     {
         return $this;
     }

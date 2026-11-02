@@ -69,6 +69,9 @@ final class ExternalResultsProviders
             throw new InvalidArgumentException(sprintf('Unknown aether-search external results provider "%s". Valid providers: %s.', $name, implode(', ', $this->names())));
         }
 
-        return app()->make($this->classes[$name]);
+        /** @var ExternalResultsProvider $provider */
+        $provider = app()->make($this->classes[$name]);
+
+        return $provider;
     }
 }

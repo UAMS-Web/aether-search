@@ -15,7 +15,7 @@ use UAMSWeb\Aether\Search\Contracts\ExternalResultsProvider;
 final class StubResultsProvider implements ExternalResultsProvider
 {
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function isConfigured(array $settings): bool
     {
@@ -23,7 +23,7 @@ final class StubResultsProvider implements ExternalResultsProvider
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function view(): string
     {
@@ -31,7 +31,7 @@ final class StubResultsProvider implements ExternalResultsProvider
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function needs(): array
     {
