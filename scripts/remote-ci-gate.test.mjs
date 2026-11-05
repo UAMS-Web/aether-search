@@ -7,6 +7,9 @@ import { parse } from 'yaml'
 // private repository switches remote CI off with a variable instead of deleting the workflows.
 // A job added without it would bill Actions minutes on a private repository, so this fails then.
 const GATE = "vars.RUN_REMOTE_CI != 'false'"
+// The `CI` aggregate runs `if: always()` and is deliberately not gated: gated, it would be skipped
+// with the other jobs, and a skipped required check reads as success.
+const AGGREGATE_JOB = 'ci'
 const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml', 'check-required-checks.yml']
 
 /**
@@ -22,7 +25,7 @@ export function ungatedJobs(source) {
     }
 
     return Object.entries(jobs)
-        .filter(([, job]) => job?.if !== GATE)
+        .filter(([id, job]) => id !== AGGREGATE_JOB && job?.if !== GATE)
         .map(([id]) => id)
 }
 
