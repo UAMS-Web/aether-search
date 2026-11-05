@@ -228,12 +228,12 @@ jobs:
   #   - php85: the locked dependencies on PHP 8.5.
   # The lowest bound is derived from the constraint in `composer.json`, never written here, so
   # raising the floor (when code starts to need a newer `statamic/cms` API) moves this leg with it.
-  # Check names carry no version number for the same reason: the ruleset's list stays stable.
+  # Check names carry no version number for the same reason: a job's name stays stable when the floor moves.
   # Only the `statamic/cms` dependency closure is lowered; the dev tooling stays locked. The
   # update rewrites `composer.lock` in the runner only.
   # Two jobs rather than one matrix job: a job skipped by the RUN_REMOTE_CI gate is skipped before
   # a matrix expands, so it would report the literal name `Compatibility (${{ matrix.name }})` and
-  # the two required checks below would never report. Each job's `name:` is a required check.
+  # the two jobs below would never report under their own names.
   compatibility-lowest:
     name: Compatibility (lowest statamic/cms)
     runs-on: ubuntu-latest
