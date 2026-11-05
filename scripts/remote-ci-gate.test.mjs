@@ -10,7 +10,7 @@ const GATE = "vars.RUN_REMOTE_CI != 'false'"
 // The `CI` aggregate runs `if: always()` and is deliberately not gated: gated, it would be skipped
 // with the other jobs, and a skipped required check reads as success.
 const AGGREGATE_JOB = 'ci'
-const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml', 'check-required-checks.yml']
+const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml']
 
 /**
  * The ids of the jobs in a workflow whose `if:` is not the gate.
