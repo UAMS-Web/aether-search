@@ -45,6 +45,12 @@ on:
     branches: [main]
   # Lets the workflow be run on demand against a branch.
   workflow_dispatch:
+  # The weekly full mutation pass. A pull request or a push mutates only the files it changes;
+  # a `schedule` run mutates everything `composer mutate` covers, so it catches decay that no
+  # pull request touches. The chain gives that run its default full-run timeout and keeps the
+  # 45-minute cap on pull requests. A scheduled run uses the default branch.
+  schedule:
+    - cron: '0 8 * * 2'
 
 # A new push to a pull request cancels that pull request's stale run.
 concurrency:
