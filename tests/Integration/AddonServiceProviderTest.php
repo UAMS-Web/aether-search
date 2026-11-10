@@ -20,7 +20,7 @@ use UAMSWeb\Aether\Search\Support\ShowsEveryEntry;
 /**
  * The add-on boots inside a minimal Statamic.
  *
- * @command  vendor/bin/pest tests/Integration/ServiceProviderTest.php
+ * @command  vendor/bin/pest tests/Integration/AddonServiceProviderTest.php
  */
 it('is discovered by Statamic as an add-on', function (): void {
     // Expect the add-on among those Statamic booted

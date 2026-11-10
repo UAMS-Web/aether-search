@@ -10,7 +10,7 @@ use UAMSWeb\Aether\Search\Support\SearchScopes;
  * The scope registry's reading of `aether-search.tabs` and `tab_collections`: which tabs exist, which
  * a site's page shows under "This site", and which index a request lands on.
  *
- * @command  vendor/bin/pest tests/Integration/SearchScopesRegistryTest.php
+ * @command  vendor/bin/pest tests/Integration/AddonScopeRegistryTest.php
  */
 
 /**

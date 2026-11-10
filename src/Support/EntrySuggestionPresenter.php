@@ -36,11 +36,12 @@ final class EntrySuggestionPresenter implements SuggestionPresenter
 
         $title = $searchable->value('title');
         $url = $searchable->url();
+        // An entry always belongs to a collection, named by its handle
+        /** @var string $collection */
         $collection = $searchable->collectionHandle();
         $labels = config('aether-search.labels');
 
-        $handle = \is_string($collection) ? $collection : '';
-        $label = (\is_array($labels) ? $labels : [])[$handle] ?? null;
+        $label = (\is_array($labels) ? $labels : [])[$collection] ?? null;
         $type = \is_string($label) ? $label : '';
 
         return self::suggestion(\is_string($title) ? $title : '', \is_string($url) ? $url : '', $type);
