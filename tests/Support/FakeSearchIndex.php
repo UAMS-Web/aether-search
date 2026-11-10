@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace UAMSWeb\Aether\Search\Tests\Support;
 
 /**
- * A search index that records the site constraint it is given, and answers with fixed hits.
+ * A search index that records what it is asked, and answers with fixed hits.
  *
  * It stands in for the index the suggestions route asks for, so a test sees which sites the route
- * searched without building entries in several sites.
+ * searched, how many hits it asked for and which constraints it set, without building entries.
  */
 final class FakeSearchIndex
 {
@@ -25,15 +25,41 @@ final class FakeSearchIndex
     public bool $searched = false;
 
     /**
-     * @param  list<object>  $hits  What a search answers with.
+     * Every query the route searched, in order.
+     *
+     * @var list<string>
      */
-    public function __construct(private readonly array $hits = []) {}
+    public array $queries = [];
+
+    /**
+     * How many times the route asked for the index to exist.
+     */
+    public int $ensured = 0;
+
+    /**
+     * The equality constraints the route set, as `[column, value]` pairs.
+     *
+     * @var list<array{0: mixed, 1: mixed}>
+     */
+    public array $wheres = [];
+
+    /**
+     * The limit the route set, or null when it set none.
+     */
+    public ?int $limit = null;
+
+    /**
+     * @param  mixed  $hits  What a search answers with: a list of hits, or anything else to stand in for a broken index.
+     */
+    public function __construct(private readonly mixed $hits = []) {}
 
     /**
      * Stand-in for creating the index when it is missing.
      */
     public function ensureExists(): self
     {
+        $this->ensured++;
+
         return $this;
     }
 
@@ -45,6 +71,7 @@ final class FakeSearchIndex
     public function search(string $query): self
     {
         $this->searched = $query !== '';
+        $this->queries[] = $query;
 
         return $this;
     }
@@ -65,27 +92,34 @@ final class FakeSearchIndex
     }
 
     /**
-     * Accept an equality constraint.
+     * Record an equality constraint.
+     *
+     * @param  mixed  $column  The field constrained.
+     * @param  mixed  $value  The value required.
      */
-    public function where(): self
+    public function where(mixed $column = null, mixed $value = null): self
     {
+        $this->wheres[] = [$column, $value];
+
         return $this;
     }
 
     /**
-     * Accept a limit.
+     * Record the limit.
+     *
+     * @param  int  $limit  How many hits to return at most.
      */
-    public function limit(): self
+    public function limit(int $limit = 0): self
     {
+        $this->limit = $limit;
+
         return $this;
     }
 
     /**
      * The hits.
-     *
-     * @return list<object>
      */
-    public function get(): array
+    public function get(): mixed
     {
         return $this->hits;
     }

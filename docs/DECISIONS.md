@@ -42,7 +42,7 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 
 **Decision.** The add-on keeps the template's placeholder config file, renamed `config/aether-search.php`, with the publish tag `aether-search-config`. It holds no settings yet.
 
-**Why.** A search add-on will have settings (indexes, result limits and the like), and keeping the file keeps the handle, the publish tag and `tests/Integration/ServiceProviderTest.php` in step from the first release. Removing it now would mean adding it back when the search code moves in.
+**Why.** A search add-on will have settings (indexes, result limits and the like), and keeping the file keeps the handle, the publish tag and `tests/Integration/AddonServiceProviderTest.php` in step from the first release. Removing it now would mean adding it back when the search code moves in.
 
 **Rejected.** Deleting the file and its test until a setting exists: it churns the handle and tag twice for no gain.
 

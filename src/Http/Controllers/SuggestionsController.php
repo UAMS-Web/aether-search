@@ -33,17 +33,26 @@ final class SuggestionsController
     /**
      * The fewest characters worth querying, so a single keystroke does not scan the whole index.
      */
+    // A class constant's declaration is not an executable line, so no covering test is attributed to its mutants.
+    // The value is pinned through its uses: SuggestionsLimitsTest asserts the boundaries and the count that MIN_QUERY_LENGTH sets.
+    // @pest-mutate-ignore: IncrementInteger, DecrementInteger
     public const int MIN_QUERY_LENGTH = 2;
 
     /**
      * The longest query accepted. A longer one returns no suggestions rather than an error,
      * because the flyout has nothing useful to show for it anyway.
      */
+    // A class constant's declaration is not an executable line, so no covering test is attributed to its mutants.
+    // The value is pinned through its uses: SuggestionsLimitsTest asserts the boundaries and the count that MAX_QUERY_LENGTH sets.
+    // @pest-mutate-ignore: IncrementInteger, DecrementInteger
     public const int MAX_QUERY_LENGTH = 100;
 
     /**
      * How many suggestions the flyout shows.
      */
+    // A class constant's declaration is not an executable line, so no covering test is attributed to its mutants.
+    // The value is pinned through its uses: SuggestionsLimitsTest asserts the boundaries and the count that LIMIT sets.
+    // @pest-mutate-ignore: IncrementInteger, DecrementInteger
     public const int LIMIT = 8;
 
     /**
@@ -69,8 +78,10 @@ final class SuggestionsController
         // The page and its type-ahead resolve the site and scope the same way
         $site = $this->site($request->query('site'));
         $scope = AetherSearch::resolve($site, $request->query('scope'));
+        // A site is keyed by its handle, so the handle is always a string
+        /** @var string $siteHandle */
         $siteHandle = $site->handle();
-        $index = app(SearchScopes::class)->index($request->query('index'), \is_string($siteHandle) ? $siteHandle : '', $scope);
+        $index = app(SearchScopes::class)->index($request->query('index'), $siteHandle, $scope);
 
         if ($length >= self::MIN_QUERY_LENGTH && $length <= self::MAX_QUERY_LENGTH) {
             $suggestions = $this->suggest($query, $index, $scope === AetherSearch::THIS_SITE ? $site : null);

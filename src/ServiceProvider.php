@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace UAMSWeb\Aether\Search;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Statamic\Providers\AddonServiceProvider;
@@ -39,9 +40,7 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var list<class-string<Tags>>
      */
-    protected $tags = [
-        AetherSearch::class,
-    ];
+    protected $tags;
 
     /**
      * The routes the add-on registers, loaded by Statamic ahead of the application's own wildcard
@@ -49,9 +48,7 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var array<string, string>
      */
-    protected $routes = [
-        'web' => __DIR__.'/../routes/web.php',
-    ];
+    protected $routes;
 
     /**
      * The views' namespace: `aether-search::index` and so on. A host overrides one view by placing
@@ -68,13 +65,36 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var array{input: list<string>, publicDirectory: string}
      */
-    protected $vite = [
-        'input' => [
-            'resources/js/cp.js',
-            'resources/css/cp.css',
-        ],
-        'publicDirectory' => 'resources/dist',
-    ];
+    protected $vite;
+
+    /**
+     * Declare the tag, the routes and the Control Panel build.
+     *
+     * They are set here rather than as property defaults because a default is not an executable
+     * line, so a test cannot be attributed to a mutation of it. Statamic reads them at boot.
+     *
+     * @param  Application  $app  The application the provider belongs to.
+     */
+    public function __construct($app)
+    {
+        parent::__construct($app);
+
+        $this->tags = [
+            AetherSearch::class,
+        ];
+
+        $this->routes = [
+            'web' => __DIR__.'/../routes/web.php',
+        ];
+
+        $this->vite = [
+            'input' => [
+                'resources/js/cp.js',
+                'resources/css/cp.css',
+            ],
+            'publicDirectory' => 'resources/dist',
+        ];
+    }
 
     /**
      * Register the providers registry as a singleton in the register phase, so a host can add a
