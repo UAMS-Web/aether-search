@@ -23,7 +23,15 @@ final class ExternalResultsProviders
      *
      * @var array<string, class-string<ExternalResultsProvider>>
      */
-    private array $classes = ['google' => GoogleResultsProvider::class];
+    private array $classes;
+
+    /**
+     * Register `google`, the provider the package ships.
+     */
+    public function __construct()
+    {
+        $this->classes = ['google' => GoogleResultsProvider::class];
+    }
 
     /**
      * Register a provider under a name, replacing any earlier one of that name.
