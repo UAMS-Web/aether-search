@@ -112,9 +112,14 @@ function suggestionsLimit(?string $ip): Limit
     }
 
     $limiter = RateLimiter::limiter(ServiceProvider::SUGGESTIONS_LIMITER);
-    assert($limiter instanceof Closure);
+    if (! $limiter instanceof Closure) {
+        throw new RuntimeException('The suggestions limiter is not registered.');
+    }
+
     $limit = $limiter($request);
-    assert($limit instanceof Limit);
+    if (! $limit instanceof Limit) {
+        throw new RuntimeException('The suggestions limiter did not return a limit.');
+    }
 
     return $limit;
 }

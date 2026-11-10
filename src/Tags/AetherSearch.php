@@ -217,10 +217,6 @@ class AetherSearch extends Tags
     {
         $requested = request()->query('index');
 
-        if (! is_string($requested)) {
-            return 'default';
-        }
-
         $scopedIndex = $this->scoped('index');
 
         if ($scopedIndex !== '' && $requested === $scopedIndex) {

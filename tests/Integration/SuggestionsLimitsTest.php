@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Illuminate\Testing\TestResponse;
 use Statamic\Contracts\Search\Result as ResultContract;
 use Statamic\Contracts\Search\Searchable;
@@ -10,6 +11,7 @@ use Statamic\Facades\User;
 use Statamic\Search\Result;
 use Symfony\Component\HttpFoundation\Response;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
+use UAMSWeb\Aether\Search\Http\Controllers\SuggestionsController;
 use UAMSWeb\Aether\Search\Tests\Support\FakeSearchIndex;
 
 /**
@@ -165,4 +167,14 @@ it('answers with no suggestions when the index does not return a list', function
 
     // Expect an empty list, not an error
     expect($this->getJson('/!/search/suggestions?q=hit')->assertOk()->json('results'))->toBe([]);
+});
+
+it('trims the query itself rather than relying on the request middleware', function (): void {
+    // Call the controller directly, so no middleware has trimmed the query first
+    $index = fakeIndexWithPresenter();
+    $response = app(SuggestionsController::class)(Request::create('/suggestions', 'GET', ['q' => '  ab  ']));
+
+    // Expect the trimmed query echoed and searched
+    expect($response->getContent())->toContain('"query":"ab"')
+        ->and($index->queries)->toBe(['ab']);
 });
