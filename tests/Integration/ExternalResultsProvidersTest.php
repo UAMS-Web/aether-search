@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use UAMSWeb\Aether\Search\Contracts\ExternalResultsProvider;
 use UAMSWeb\Aether\Search\External\ExternalResultsProviders;
 use UAMSWeb\Aether\Search\External\GoogleResultsProvider;
 use UAMSWeb\Aether\Search\Tests\Support\StubResultsProvider;
@@ -57,7 +58,7 @@ it('refuses an unknown provider name and lists the valid ones', function (): voi
     $providers->register('stub', StubResultsProvider::class);
 
     // Expect the exact message, with the name and the valid names comma-separated
-    expect(fn () => $providers->make('nope'))->toThrow(
+    expect(fn (): ExternalResultsProvider => $providers->make('nope'))->toThrow(
         InvalidArgumentException::class,
         'Unknown aether-search external results provider "nope". Valid providers: google, stub.',
     );

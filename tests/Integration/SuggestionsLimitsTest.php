@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Testing\TestResponse;
 use Statamic\Contracts\Search\Result as ResultContract;
+use Statamic\Contracts\Search\Searchable;
 use Statamic\Facades\Search;
 use Statamic\Facades\User;
 use Statamic\Search\Result;
+use Symfony\Component\HttpFoundation\Response;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
 use UAMSWeb\Aether\Search\Tests\Support\FakeSearchIndex;
 
@@ -37,7 +40,8 @@ function fakeIndexWithPresenter(mixed $hits = []): FakeSearchIndex
         public function present(ResultContract $result): ?array
         {
             $searchable = $result->getSearchable();
-            $email = $searchable instanceof Statamic\Auth\User ? (string) $searchable->email() : '';
+            $address = $searchable instanceof Statamic\Auth\User ? $searchable->email() : '';
+            $email = is_string($address) ? $address : '';
 
             return str_starts_with($email, 'drop') ? null : ['title' => $email, 'url' => '/'.$email, 'type' => 'T'];
         }
@@ -47,13 +51,30 @@ function fakeIndexWithPresenter(mixed $hits = []): FakeSearchIndex
 }
 
 /**
+ * The titles in a suggestions response, in order.
+ *
+ * @param  TestResponse<Response>  $response  The route's response.
+ * @return list<string> The titles.
+ */
+function suggestionTitles(TestResponse $response): array
+{
+    /** @var list<array{title: string}> $results */
+    $results = $response->assertOk()->json('results');
+
+    return array_column($results, 'title');
+}
+
+/**
  * Wrap a user with an email as a search hit.
  *
  * @param  string  $email  The email, which the presenter turns into the title.
  */
 function userHit(string $email): Result
 {
-    return new Result(User::make()->email($email), 'user');
+    /** @var Searchable $user */
+    $user = User::make()->email($email);
+
+    return new Result($user, 'user');
 }
 
 /**
@@ -105,7 +126,7 @@ it('returns no more than eight suggestions however many hits match', function ()
     fakeIndexWithPresenter(userHits(12));
 
     // Ask for suggestions
-    $titles = array_column($this->getJson('/!/search/suggestions?q=hit')->assertOk()->json('results'), 'title');
+    $titles = suggestionTitles($this->getJson('/!/search/suggestions?q=hit'));
 
     // Expect the first eight, in order
     expect($titles)->toBe(array_map(fn (int $n): string => "hit{$n}@example.test", range(1, 8)));
@@ -124,7 +145,7 @@ it('does not count a dropped hit toward the limit', function (): void {
     fakeIndexWithPresenter([...userHits(10, 'drop'), ...userHits(10)]);
 
     // Expect eight presented suggestions, none of them dropped
-    $titles = array_column($this->getJson('/!/search/suggestions?q=hit')->assertOk()->json('results'), 'title');
+    $titles = suggestionTitles($this->getJson('/!/search/suggestions?q=hit'));
     expect($titles)->toHaveCount(8)
         ->and(implode(',', $titles))->not->toContain('drop');
 });
@@ -134,7 +155,7 @@ it('skips a hit that is not a search result and keeps the ones after it', functi
     fakeIndexWithPresenter([new stdClass, userHit('a@example.test'), new stdClass, userHit('b@example.test'), new stdClass]);
 
     // Expect both results
-    $titles = array_column($this->getJson('/!/search/suggestions?q=hit')->assertOk()->json('results'), 'title');
+    $titles = suggestionTitles($this->getJson('/!/search/suggestions?q=hit'));
     expect($titles)->toBe(['a@example.test', 'b@example.test']);
 });
 

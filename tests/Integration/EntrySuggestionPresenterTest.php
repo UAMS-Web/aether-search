@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Statamic\Contracts\Search\Searchable;
 use Statamic\Entries\Collection;
 use Statamic\Entries\Entry;
 use Statamic\Facades\User;
@@ -18,7 +19,7 @@ use UAMSWeb\Aether\Search\Support\EntrySuggestionPresenter;
 /**
  * Save an entry in a collection of its own and wrap it as a search hit.
  *
- * @param  array<string, mixed>  $data  The entry's data.
+ * @param  array<mixed, mixed>  $data  The entry's data.
  * @param  string|null  $routes  The collection's route, or null for a collection with no public URLs.
  * @return array{0: Result, 1: string} The hit, and the collection's handle.
  */
@@ -32,6 +33,7 @@ function hitOnEntry(array $data, ?string $routes = '{slug}'): array
     if ($routes !== null) {
         $collection->routes($routes);
     }
+
     $collection->save();
 
     // Save the entry in it
@@ -51,9 +53,9 @@ function hitOnEntry(array $data, ?string $routes = '{slug}'): array
  */
 function visibility(bool $answer): EntryVisibility
 {
-    return new class($answer) implements EntryVisibility
+    return new readonly class($answer) implements EntryVisibility
     {
-        public function __construct(private readonly bool $answer) {}
+        public function __construct(private bool $answer) {}
 
         public function canView(Entry $entry): bool
         {
@@ -68,7 +70,7 @@ it('shapes a visible entry with its title, url and collection label', function (
     config(['aether-search.labels' => [$handle => 'Page']]);
 
     // Present it
-    $suggestion = (new EntrySuggestionPresenter(visibility(true)))->present($hit);
+    $suggestion = new EntrySuggestionPresenter(visibility(true))->present($hit);
 
     // Expect all three fields
     expect($suggestion)->toBe(['title' => 'Cardiology clinic', 'url' => '/a-page', 'type' => 'Page']);
@@ -79,12 +81,14 @@ it('drops an entry the visibility rule refuses', function (): void {
     [$hit] = hitOnEntry(['title' => 'Cardiology clinic']);
 
     // Present it under a rule that refuses everything
-    expect((new EntrySuggestionPresenter(visibility(false)))->present($hit))->toBeNull();
+    expect(new EntrySuggestionPresenter(visibility(false))->present($hit))->toBeNull();
 });
 
 it('drops a hit that is not an entry without asking the visibility rule', function (): void {
     // Wrap a user as a hit, and a rule that fails the test if it is asked
-    $hit = new Result(User::make()->email('a@example.test'), 'user');
+    /** @var Searchable $user */
+    $user = User::make()->email('a@example.test');
+    $hit = new Result($user, 'user');
     $rule = new class implements EntryVisibility
     {
         public function canView(Entry $entry): bool
@@ -94,7 +98,7 @@ it('drops a hit that is not an entry without asking the visibility rule', functi
     };
 
     // Expect the hit dropped
-    expect((new EntrySuggestionPresenter($rule))->present($hit))->toBeNull();
+    expect(new EntrySuggestionPresenter($rule)->present($hit))->toBeNull();
 });
 
 it('leaves the type empty when the collection has no usable label', function (string $case): void {
@@ -103,11 +107,11 @@ it('leaves the type empty when the collection has no usable label', function (st
     config(['aether-search.labels' => match ($case) {
         'not an array' => 'not labels',
         'other collections only' => ['other' => 'Other'],
-        'not a string' => [$handle => 42],
+        default => [$handle => 42],
     }]);
 
     // Present it
-    $suggestion = (new EntrySuggestionPresenter(visibility(true)))->present($hit);
+    $suggestion = new EntrySuggestionPresenter(visibility(true))->present($hit);
 
     // Expect the suggestion with an empty type
     expect($suggestion)->toBe(['title' => 'Cardiology clinic', 'url' => '/a-page', 'type' => '']);
@@ -122,7 +126,7 @@ it('drops an entry with no title or no public url', function (array $data, ?stri
     [$hit] = hitOnEntry($data, $routes);
 
     // Expect it dropped
-    expect((new EntrySuggestionPresenter(visibility(true)))->present($hit))->toBeNull();
+    expect(new EntrySuggestionPresenter(visibility(true))->present($hit))->toBeNull();
 })->with([
     'no title' => [[], '{slug}'],
     'a title that is not a string' => [['title' => ['x']], '{slug}'],

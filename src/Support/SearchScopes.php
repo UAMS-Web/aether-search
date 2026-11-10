@@ -42,6 +42,8 @@ final class SearchScopes
 
         foreach (is_array($tabs) ? $tabs : [] as $handle => $label) {
             if (is_string($label)) {
+                // PHP stores a numeric-string key as an integer either way, so the cast changes no key.
+                // @pest-mutate-ignore: RemoveStringCast
                 $labels[(string) $handle] = $label;
             }
         }
@@ -148,15 +150,15 @@ final class SearchScopes
     {
         $handles = [];
 
+        /** @var EntriesCollection $collection */
         foreach (Collection::all() as $collection) {
-            if (! $collection instanceof EntriesCollection) {
-                continue;
-            }
-
-            $handle = $collection->handle();
+            // A collection's sites are always a collection of handles, the default site's when none are set
+            /** @var SupportCollection<int, string> $sites */
             $sites = $collection->sites();
 
-            if (\is_string($handle) && $sites instanceof SupportCollection && $sites->contains($siteHandle)) {
+            if ($sites->contains($siteHandle)) {
+                /** @var string $handle */
+                $handle = $collection->handle();
                 $handles[] = $handle;
             }
         }

@@ -117,9 +117,11 @@ class AetherSearch extends Tags
      */
     public function site(): string
     {
+        // A site is keyed by its handle, so the handle is always a string
+        /** @var string $handle */
         $handle = $this->currentSite()->handle();
 
-        return is_string($handle) ? $handle : '';
+        return $handle;
     }
 
     /**
