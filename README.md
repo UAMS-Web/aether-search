@@ -130,4 +130,4 @@ The add-on's namespace is `UAMSWeb\Aether\Search\`. Every add-on in the Aether e
 
 ## License
 
-The add-on has no license yet. The choice waits on the general decision from UAMS legal in [`UAMS-Web/uams-statamic#261`](https://github.com/UAMS-Web/uams-statamic/issues/261).
+MIT. See [`LICENSE`](LICENSE).
