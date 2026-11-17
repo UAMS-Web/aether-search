@@ -1,5 +1,5 @@
 {
-    "_hash": "5470c8a69e71c720a0efc6b67e9522a22f84e41cb38a65086a2a39439d938eea",
+    "_hash": "0c37844a63d2dfb8d5f4f37cdb078ebb61a3c47e7008c5b5c4347ac109af2de6",
     "patches": {
         "pestphp/pest-plugin-mutate": [
             {
@@ -71,6 +71,46 @@
                 "extra": {
                     "provenance": "patches-file:patches.json"
                 }
+            },
+            {
+                "package": "pestphp/pest-plugin-mutate",
+                "description": "Select tests for a mutated scalar function default, so it is not scored without a test running it (temporary; see UAMS-Web/uams-2020#673)",
+                "url": "vendor/uams-web/patches-pest-plugin-mutate/patches/pest-plugin-mutate-function-defaults.patch",
+                "sha256": "04e7c1c42edb2ef07da615e5ac57b2236384e8c2ca8aa27323a69ed5aef37a7e",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
+            },
+            {
+                "package": "pestphp/pest-plugin-mutate",
+                "description": "Propagate a mutation into isolated test processes and reject a test report that ran no tests, so an isolated run cannot score a mutant killed without running a test (temporary; see UAMS-Web/UAMSWP-Logo-List#82)",
+                "url": "vendor/uams-web/patches-pest-plugin-mutate/patches/pest-plugin-mutate-isolated-processes.patch",
+                "sha256": "31096f60be22b5fdc84201ba0345eaa400dd117576e125c002d1124b80f3342a",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
+            },
+            {
+                "package": "pestphp/pest-plugin-mutate",
+                "description": "Map a class constant mutant to the tests covering its containing class, since a constant initializer has no executable coverage line (temporary)",
+                "url": "vendor/uams-web/patches-pest-plugin-mutate/patches/pest-plugin-mutate-class-constant-coverage.patch",
+                "sha256": "e09b3535c7a69db85b35366fd1c0aa676a5cf98d0671d8245323516f8018b8f4",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
+            },
+            {
+                "package": "pestphp/pest-plugin-mutate",
+                "description": "Skip a node whose own comment carries a matching @pest-mutate-ignore marker, including when the traverser still leaves that node (temporary)",
+                "url": "vendor/uams-web/patches-pest-plugin-mutate/patches/pest-plugin-mutate-ignore-annotated-statement.patch",
+                "sha256": "70378c227b12c6218eeb4f7ee5e2d0de5396bfb9165cff5683de7be5bdd6ff44",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
             }
         ],
         "orchestra/testbench-core": [
@@ -78,7 +118,29 @@
                 "package": "orchestra/testbench-core",
                 "description": "Give each parallel test worker its own service manifest (temporary; see UAMS-Web/patches-orchestra-testbench-core#1)",
                 "url": "vendor/uams-web/patches-orchestra-testbench-core/patches/testbench-parallel-services-manifest.patch",
-                "sha256": "0b2c164aa2bf3a27c69db0e3c067f001479324e409035ffeb9a1fee36eb03be1",
+                "sha256": "3b11ccf5e85002a2f2255f727806684e764e1c887698c65ebc2266c74e3bff46",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
+            },
+            {
+                "package": "orchestra/testbench-core",
+                "description": "Give each parallel test worker its own package manifest under Pest (temporary; see UAMS-Web/patches-orchestra-testbench-core#5)",
+                "url": "vendor/uams-web/patches-orchestra-testbench-core/patches/testbench-parallel-packages-manifest.patch",
+                "sha256": "dbcb949848fb6bf9cd010f13b0b4224c4b9f067a988d603798cdef7d2884eb72",
+                "depth": 1,
+                "extra": {
+                    "provenance": "patches-file:patches.json"
+                }
+            }
+        ],
+        "laravel/framework": [
+            {
+                "package": "laravel/framework",
+                "description": "Tolerate a lost facade stub rename on Windows (temporary; see UAMS-Web/patches-orchestra-testbench-core#6)",
+                "url": "vendor/uams-web/patches-orchestra-testbench-core/patches/laravel-facade-stub-rename.patch",
+                "sha256": "0b71155dab700763aaa6a32156adbe2c1ab2ab4381744d9277e2213905a25163",
                 "depth": 1,
                 "extra": {
                     "provenance": "patches-file:patches.json"
