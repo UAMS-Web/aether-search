@@ -104,11 +104,12 @@ A result's card is chosen by its `result_type`, then its `collection`, and the g
 
 ## Seams
 
-Three interfaces let a host decide what the package cannot, with a default that needs no host code:
+Four interfaces let a host decide what the package cannot, with a default that needs no host code:
 
 - `UAMSWeb\Aether\Search\Contracts\EntryVisibility`: whether this reader may see an entry in the suggestions. The default shows every entry. Pair it with `always_scope` so the listing applies the same rule.
 - `UAMSWeb\Aether\Search\Contracts\SuggestionPresenter`: how a hit becomes a suggestion, for hits that are not entries. The default handles entries.
 - `UAMSWeb\Aether\Search\Contracts\ResponseAllowance`: raises the host's own response allowance, such as a content security policy, for an external provider's results. The default does nothing.
+- `UAMSWeb\Aether\Search\Contracts\SiteTree`: which sites "This site" covers from a site, and the tier a site is offered "All of <tier>" for, between "This site" and "All of <root site's name>". The default treats every site as flat: each covers itself alone and none has a tier.
 
 Bind your own in a service provider's `register()`; the package binds its defaults only when you have not.
 

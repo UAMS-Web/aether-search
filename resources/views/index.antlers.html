@@ -41,7 +41,7 @@
 {{ $search_scope = {aether_search:active} }}
 {{ $scope_param = {aether_search:param :active="$search_scope"} }}
 {{ $scope_query = $scope_param ? ( '&amp;scope=' + $scope_param ) : '' }}
-{{ $search_site = ($search_scope == 'all') ? '*' : site:handle }}
+{{ $search_site = {aether_search:sites :active="$search_scope"} }}
 
 {{# The external results scope (Google, say): the provider renders the results in place, so the type
     tabs and the site listing do not apply. Never true for the scoped-subtree index. #}}
@@ -213,10 +213,10 @@
 			{{# Offered from a scoped empty state, with the same decoded and encoded query as the tab
 			    links; `&amp;` separates the params. #}}
 			{{ $all_results_url = $search_path + '?q=' + $q_url + '&amp;index=default' + $scope_query }}
-			{{# The wider scope, offered from the empty state on "This site". #}}
+			{{# The wider scope, offered from the empty state on "This site" and on a tier. #}}
 			{{ $wider_scope_url = '' }}
 			{{ $wider_scope_label = '' }}
-			{{ if $search_scope == 'site' && ! $is_scoped }}
+			{{ if ($search_scope == 'site' || $search_scope == 'tier') && ! $is_scoped }}
 				{{ $wider_scope_url = $search_path + '?q=' + $q_url + '&amp;index=' + $search_index + '&amp;scope=all' }}
 				{{ $root_site_name = {aether_search:root_name} }}
 				{{ $wider_scope_label = 'all of ' + ($root_site_name | sanitize) }}

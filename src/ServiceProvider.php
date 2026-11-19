@@ -12,11 +12,13 @@ use Statamic\Providers\AddonServiceProvider;
 use Statamic\Tags\Tags;
 use UAMSWeb\Aether\Search\Contracts\EntryVisibility;
 use UAMSWeb\Aether\Search\Contracts\ResponseAllowance;
+use UAMSWeb\Aether\Search\Contracts\SiteTree;
 use UAMSWeb\Aether\Search\Contracts\SuggestionPresenter;
 use UAMSWeb\Aether\Search\External\ExternalResults;
 use UAMSWeb\Aether\Search\External\ExternalResultsProviders;
 use UAMSWeb\Aether\Search\External\NoAllowance;
 use UAMSWeb\Aether\Search\Support\EntrySuggestionPresenter;
+use UAMSWeb\Aether\Search\Support\FlatSiteTree;
 use UAMSWeb\Aether\Search\Support\ShowsEveryEntry;
 use UAMSWeb\Aether\Search\Tags\AetherSearch;
 
@@ -26,7 +28,7 @@ use UAMSWeb\Aether\Search\Tags\AetherSearch;
  * The host application discovers it through `extra.laravel.providers` in `composer.json`. It
  * registers the `aether_search` tag, the search page and the type-ahead suggestions route
  * (`routes/web.php`), the views under the `aether-search` namespace, and the defaults for the two
- * seams an application can rebind: {@see EntryVisibility} and {@see SuggestionPresenter}.
+ * seams an application can rebind: {@see EntryVisibility}, {@see SuggestionPresenter} and {@see SiteTree}.
  */
 class ServiceProvider extends AddonServiceProvider
 {
@@ -117,6 +119,7 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->bindIf(EntryVisibility::class, ShowsEveryEntry::class);
         $this->app->bindIf(SuggestionPresenter::class, EntrySuggestionPresenter::class);
         $this->app->bindIf(ResponseAllowance::class, NoAllowance::class);
+        $this->app->bindIf(SiteTree::class, FlatSiteTree::class);
 
         // Check the configured external results provider once every provider has booted, so a host
         // that registers its own in a provider's boot() is counted, and fail with the valid names

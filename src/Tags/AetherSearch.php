@@ -19,10 +19,10 @@ use UAMSWeb\Aether\Search\Support\SearchScopes;
 /**
  * `{{ aether_search:* }}`: the search page's logic, kept out of its Antlers.
  *
- * It answers how widely the page looks (this site or every site), which index and type tabs are
+ * It answers how widely the page looks (this site, its tier or every site), which index and type tabs are
  * active, the settings the shell reads, and which card and label a result gets. Values it returns
- * are fixed strings or come from configuration, and none echoes the request unescaped, so they
- * are safe in an href or an attribute.
+ * are fixed strings, come from configuration or are configured site handles, and none echoes the
+ * request unescaped, so they are safe in an href or an attribute.
  */
 class AetherSearch extends Tags
 {
@@ -32,6 +32,11 @@ class AetherSearch extends Tags
     public const string THIS_SITE = 'site';
 
     /**
+     * The scope that searches the sites the current site's tier covers.
+     */
+    public const string TIER = 'tier';
+
+    /**
      * The scope that searches every site.
      */
     public const string ALL_SITES = 'all';
@@ -39,10 +44,11 @@ class AetherSearch extends Tags
     /**
      * Resolve the requested `?scope=`, falling back to the current site's default.
      *
-     * A sub-site offers "This site" (the default) and "All of <root site's name>"; the root site
-     * offers one scope, labelled "This site", which searches every site. Anything other than a scope this
-     * site offers (an unknown string, or an array from `?scope[]=x`) falls back, so a hand-edited
-     * URL cannot fail.
+     * A sub-site offers "This site" (the default), "All of <tier>" when the bound site tree gives it
+     * a tier, and "All of <root site's name>"; the root site offers one scope, labelled "This site",
+     * which searches every site. Anything other than a scope this site offers (an unknown string,
+     * `tier` on a site with no tier, or an array from `?scope[]=x`) falls back, so a hand-edited URL
+     * cannot fail.
      */
     public function active(): string
     {
@@ -54,11 +60,12 @@ class AetherSearch extends Tags
      *
      * The suggestions controller calls this too, so the page and its type-ahead cannot disagree.
      * The external results scope wins when it is offered and requested; the root site's one scope
-     * is every site; a sub-site is limited to itself unless it asks for every site.
+     * is every site; a sub-site is limited to the sites it covers unless it asks for its tier, when
+     * it has one, or for every site.
      *
      * @param  SiteObject  $site  The site the page belongs to.
      * @param  mixed  $requested  The raw `scope` query value.
-     * @return string One of {@see THIS_SITE}, {@see ALL_SITES} or the external scope's value.
+     * @return string One of {@see THIS_SITE}, {@see TIER}, {@see ALL_SITES} or the external scope's value.
      */
     public static function resolve(SiteObject $site, mixed $requested): string
     {
@@ -68,11 +75,31 @@ class AetherSearch extends Tags
             return $external->value();
         }
 
-        if ($site->handle() === self::rootSite()->handle()) {
+        // A site is keyed by its handle, so the handle is always a string
+        /** @var string $handle */
+        $handle = $site->handle();
+
+        if ($handle === self::rootSite()->handle()) {
             return self::ALL_SITES;
         }
 
+        if ($requested === self::TIER && app(SearchScopes::class)->tierOf($handle) !== null) {
+            return self::TIER;
+        }
+
         return $requested === self::ALL_SITES ? self::ALL_SITES : self::THIS_SITE;
+    }
+
+    /**
+     * The sites the `active` scope searches, as the `site` parameter of `{{ search:results }}`
+     * takes them: handles joined by `|`, or `*` for every site.
+     */
+    public function sites(): string
+    {
+        $active = $this->parameters()->get('active');
+        $sites = \is_string($active) ? $this->scopes()->sites($this->siteHandle(), $active) : null;
+
+        return $sites === null ? '*' : implode('|', $sites);
     }
 
     /**
@@ -181,10 +208,24 @@ class AetherSearch extends Tags
         $index = $this->parameters()->get('index');
 
         // The root site has one scope, every site, and it reads "This site" as on a WordPress
-        // network's root; a sub-site offers "This site" and "All of <root site's name>"
-        $scopes = $this->onRootSite()
-            ? [self::ALL_SITES => 'This site']
-            : [self::THIS_SITE => 'This site', self::ALL_SITES => 'All of '.$this->rootName()];
+        // network's root; a sub-site offers "This site", "All of <tier>" when it has a tier, and
+        // "All of <root site's name>"
+        $scopes = [self::ALL_SITES => 'This site'];
+
+        if (! $this->onRootSite()) {
+            $scopes = [self::THIS_SITE => 'This site'];
+            $tier = $this->scopes()->tierSite($this->siteHandle());
+
+            if ($tier instanceof SiteObject) {
+                $name = $tier->name();
+                // A site is keyed by its handle, so the handle is always a string
+                /** @var string $handle */
+                $handle = $tier->handle();
+                $scopes[self::TIER] = 'All of '.(is_string($name) ? $name : $handle);
+            }
+
+            $scopes[self::ALL_SITES] = 'All of '.$this->rootName();
+        }
 
         $external = app(ExternalResults::class);
 
@@ -404,7 +445,11 @@ class AetherSearch extends Tags
             return $external->value();
         }
 
-        return $scope === self::ALL_SITES && ! $this->onRootSite() ? self::ALL_SITES : '';
+        if ($this->onRootSite()) {
+            return '';
+        }
+
+        return $scope === self::ALL_SITES || $scope === self::TIER ? $scope : '';
     }
 
     /**

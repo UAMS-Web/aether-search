@@ -7,6 +7,9 @@ namespace UAMSWeb\Aether\Search\Support;
 use Illuminate\Support\Collection as SupportCollection;
 use Statamic\Entries\Collection as EntriesCollection;
 use Statamic\Facades\Collection;
+use Statamic\Facades\Site;
+use Statamic\Sites\Site as SiteObject;
+use UAMSWeb\Aether\Search\Contracts\SiteTree;
 
 /**
  * The search scopes, defined once: the type tabs, their index handles, the collections each one
@@ -20,15 +23,22 @@ use Statamic\Facades\Collection;
  *   there covers everything and always shows.
  * - `labels` is the result-type label, by collection handle.
  *
- * Under "This site" a page shows only the tabs its site can fill: "All results", and each tab with
- * a collection that site carries. Under any wider scope every tab shows.
+ * Which sites a scope covers comes from the bound {@see SiteTree}: "This site" covers the sites it
+ * names for the current site, and "All of <tier>" the sites it names for the tier. Under either, a
+ * page shows only the tabs those sites can fill: "All results", and each tab with a collection one
+ * of them carries. Under every site, every tab shows.
  */
 final class SearchScopes
 {
     /**
-     * The scope that searches only the current site, as the tag names it.
+     * The scope that searches the sites the current site covers, as the tag names it.
      */
     private const string THIS_SITE = 'site';
+
+    /**
+     * The scope that searches the sites the current site's tier covers, as the tag names it.
+     */
+    private const string TIER = 'tier';
 
     /**
      * Every tab, in order, as index handle => label. `default` comes first.
@@ -54,22 +64,23 @@ final class SearchScopes
     /**
      * The tabs a page shows for a site under a scope.
      *
-     * Only "This site" narrows them: a tab is dropped when it names collections and the site
-     * carries none of them. Any other scope searches more than the one site, so every tab shows.
+     * "This site" and a tier narrow them: a tab is dropped when it names collections and no site
+     * the scope covers carries one of them. Every site is too wide to narrow, so every tab shows.
      *
-     * @param  string  $siteHandle  The handle of the site the search covers.
+     * @param  string  $siteHandle  The handle of the site the reader is on.
      * @param  string  $scope  The resolved search scope.
      * @return array<string, string> Index handle => label.
      */
     public function visibleTabs(string $siteHandle, string $scope): array
     {
         $tabs = $this->tabs();
+        $sites = $this->sites($siteHandle, $scope);
 
-        if ($scope !== self::THIS_SITE) {
+        if ($sites === null) {
             return $tabs;
         }
 
-        $carried = $this->carriedBy($siteHandle);
+        $carried = $this->carriedByAny($sites);
 
         return array_filter(
             $tabs,
@@ -148,6 +159,102 @@ final class SearchScopes
      */
     public function carriedBy(string $siteHandle): array
     {
+        return $this->carriedByAny([$siteHandle]);
+    }
+
+    /**
+     * The handles of the sites a scope searches from a site, or null when it searches every site.
+     *
+     * "This site" covers what the bound {@see SiteTree} names for the site, and the tier scope what
+     * it names for the site's tier. The site the reader is on is always among "This site"'s, and a
+     * tier scope on a site with no tier falls back to "This site"'s.
+     *
+     * @param  string  $siteHandle  The handle of the site the reader is on.
+     * @param  string  $scope  The resolved search scope.
+     * @return list<string>|null Site handles, or null for every site.
+     */
+    public function sites(string $siteHandle, string $scope): ?array
+    {
+        if ($scope === self::THIS_SITE) {
+            return $this->covered($siteHandle);
+        }
+
+        if ($scope === self::TIER) {
+            $tier = $this->tierOf($siteHandle);
+
+            return $tier === null ? $this->covered($siteHandle) : $this->covered($tier);
+        }
+
+        return null;
+    }
+
+    /**
+     * The handle of the tier a site is offered "All of <name>" for, or null when it has none.
+     *
+     * The bound {@see SiteTree}'s answer is checked here, so a host cannot point the scope at the
+     * site itself, at the root site (whose scope is every site) or at a site that is not configured.
+     *
+     * @param  string  $siteHandle  The handle of the site the reader is on.
+     */
+    public function tierOf(string $siteHandle): ?string
+    {
+        $tier = $this->tierSite($siteHandle);
+
+        // A site is keyed by its handle, so the handle is always a string
+        /** @var string|null $handle */
+        $handle = $tier?->handle();
+
+        return $handle;
+    }
+
+    /**
+     * The tier a site is offered "All of <name>" for, as a configured site, or null when it has none.
+     *
+     * @param  string  $siteHandle  The handle of the site the reader is on.
+     */
+    public function tierSite(string $siteHandle): ?SiteObject
+    {
+        $tier = app(SiteTree::class)->tierOf($siteHandle);
+        /** @var SiteObject $root */
+        $root = Site::default();
+        // Statamic answers a handle with its configured site, or null when none is configured
+        /** @var SiteObject|null $site */
+        $site = $tier === null ? null : Site::get($tier);
+
+        return $tier === $siteHandle || $tier === $root->handle() ? null : $site;
+    }
+
+    /**
+     * The sites the bound {@see SiteTree} says a site covers, with that site always first among them.
+     *
+     * A handle that names no configured site is dropped, so the page's `|`-joined `site` and the
+     * type-ahead's list cannot disagree over one the host got wrong.
+     *
+     * @param  string  $siteHandle  The site's handle.
+     * @return list<string> Site handles, without duplicates.
+     */
+    private function covered(string $siteHandle): array
+    {
+        $sites = [$siteHandle];
+
+        foreach (app(SiteTree::class)->covered($siteHandle) as $handle) {
+            if (Site::get($handle) instanceof SiteObject && ! \in_array($handle, $sites, true)) {
+                $sites[] = $handle;
+            }
+        }
+
+        return $sites;
+    }
+
+    /**
+     * The collections any of these sites carries, from Statamic's site and collection
+     * configuration, each once.
+     *
+     * @param  list<string>  $siteHandles  The sites' handles.
+     * @return list<string> Collection handles.
+     */
+    private function carriedByAny(array $siteHandles): array
+    {
         $handles = [];
 
         /** @var EntriesCollection $collection */
@@ -156,7 +263,7 @@ final class SearchScopes
             /** @var SupportCollection<int, string> $sites */
             $sites = $collection->sites();
 
-            if ($sites->contains($siteHandle)) {
+            if ($sites->intersect($siteHandles)->isNotEmpty()) {
                 /** @var string $handle */
                 $handle = $collection->handle();
                 $handles[] = $handle;
