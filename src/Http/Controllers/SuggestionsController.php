@@ -81,10 +81,11 @@ final class SuggestionsController
         // A site is keyed by its handle, so the handle is always a string
         /** @var string $siteHandle */
         $siteHandle = $site->handle();
-        $index = app(SearchScopes::class)->index($request->query('index'), $siteHandle, $scope);
+        $scopes = app(SearchScopes::class);
+        $index = $scopes->index($request->query('index'), $siteHandle, $scope);
 
         if ($length >= self::MIN_QUERY_LENGTH && $length <= self::MAX_QUERY_LENGTH) {
-            $suggestions = $this->suggest($query, $index, $scope === AetherSearch::THIS_SITE ? $site : null);
+            $suggestions = $this->suggest($query, $index, $scopes->sites($siteHandle, $scope));
         }
 
         return new JsonResponse([
@@ -119,10 +120,10 @@ final class SuggestionsController
      * Asks for twice {@see LIMIT} and trims after shaping, so a dropped hit does not leave the
      * flyout short while more matches exist.
      *
-     * @param  SiteInstance|null  $site  The one site to search, or null for every site.
+     * @param  list<string>|null  $sites  The handles of the sites to search, or null for every site.
      * @return list<array{title: string, url: string, type: string}>
      */
-    private function suggest(string $query, string $handle, ?SiteInstance $site): array
+    private function suggest(string $query, string $handle, ?array $sites): array
     {
         /** @var Index $index */
         $index = Search::index($handle);
@@ -131,8 +132,8 @@ final class SuggestionsController
         /** @var QueryBuilder $builder */
         $builder = $index->search($query);
 
-        if ($site instanceof SiteInstance) {
-            $builder->whereIn('site', [$site->handle()]);
+        if ($sites !== null) {
+            $builder->whereIn('site', $sites);
         }
 
         $builder->where('status', 'published');
