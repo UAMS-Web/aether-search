@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Response;
+use Illuminate\Testing\TestResponse;
 use Statamic\Entries\Entry as EntryInstance;
 use UAMSWeb\Aether\Search\Contracts\EntryVisibility;
 use UAMSWeb\Aether\Search\Tests\Support\SearchFixtures;
@@ -83,4 +85,51 @@ it('is throttled by the limiter the add-on defines', function (): void {
 
     // Expect the third to be refused
     expect($statuses)->toBe([200, 200, 429]);
+});
+
+/**
+ * The titles a suggestions response lists, in response order.
+ *
+ * @param  TestResponse<Response>  $response  The route's answer.
+ * @return list<string> The suggested titles.
+ */
+function suggestedTitles(TestResponse $response): array
+{
+    /** @var list<array{title: string}> $results */
+    $results = $response->assertOk()->json('results');
+
+    return array_column($results, 'title');
+}
+
+it('suggests a published entry and leaves out one that was unpublished after the index was built', function (): void {
+    // Index two entries that both match the query, then unpublish one without an index update.
+    // Statamic indexes only published entries and drops a saved draft from the index, so the
+    // add-on's status constraint is what keeps this stale hit out.
+    SearchFixtures::indexEntries([
+        ['title' => 'Cardiology clinic', 'slug' => 'cardiology'],
+        ['title' => 'Cardiology research', 'slug' => 'cardiology-research', 'stale_draft' => true],
+    ]);
+
+    // Ask for suggestions
+    $response = $this->getJson('/!/search/suggestions?q=cardiology');
+
+    // Expect only the published entry
+    expect(suggestedTitles($response))->toBe(['Cardiology clinic']);
+});
+
+it('suggests only the entry of the site asked for, and both when every site is asked for', function (): void {
+    // Index a matching entry on each of two sites
+    SearchFixtures::defineTwoSites();
+    SearchFixtures::indexEntries([
+        ['title' => 'Cardiology main', 'slug' => 'cardiology-main'],
+        ['title' => 'Cardiology health', 'slug' => 'cardiology-health', 'site' => 'health'],
+    ]);
+
+    // Ask from the sub-site, then from the sub-site for every site
+    $own = $this->getJson('/!/search/suggestions?q=cardiology&site=health');
+    $every = $this->getJson('/!/search/suggestions?q=cardiology&site=health&scope=all');
+
+    // Expect the sub-site's entry alone, then both entries
+    expect(suggestedTitles($own))->toBe(['Cardiology health'])
+        ->and(suggestedTitles($every))->toEqualCanonicalizing(['Cardiology main', 'Cardiology health']);
 });
