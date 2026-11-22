@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use PHPUnit\Framework\Assert;
 use UAMSWeb\Aether\Search\Tests\Support\SearchFixtures;
 
 /**
@@ -148,4 +149,67 @@ it('is reached ahead of a wildcard route the host registers', function (): void 
 
     // Expect the add-on's page, not the host's wildcard
     $response->assertOk()->assertSee('<form action="/search"', false)->assertDontSee('host wildcard');
+});
+
+/**
+ * The title and link of each result row on a rendered search page, in page order.
+ *
+ * @param  string|false  $html  The page's HTML, as a response reports it.
+ * @return array<string, string> Link => title.
+ */
+function resultRows(string|false $html): array
+{
+    // Refuse a response with no body, which would read as a page with no rows
+    Assert::assertIsString($html);
+
+    // Read the row link of each hit: the card's title link
+    preg_match_all('#<a href="([^"]+)" class="stretched-link">([^<]+)</a>#', $html, $matches);
+
+    return array_combine($matches[1], $matches[2]);
+}
+
+it('renders the row of a hit a real index returns, with its title and link', function (): void {
+    // Index a page that matches the query and one that does not
+    SearchFixtures::indexEntries([
+        ['title' => 'Cardiology clinic', 'slug' => 'cardiology'],
+        ['title' => 'Radiology suite', 'slug' => 'radiology'],
+    ]);
+
+    // Request the page with a query that matches
+    $html = $this->get('/search?q=cardiology')->assertOk()->assertDontSee('No results found.')->getContent();
+
+    // Expect the one matching row, titled and linked
+    expect(resultRows($html))->toBe(['/cardiology' => 'Cardiology clinic']);
+});
+
+it('paginates the hits a real index returns, and page two shows the hits page one did not', function (): void {
+    // Index twelve matching pages, two more than one page of results holds
+    $entries = [];
+    for ($number = 1; $number <= 12; $number++) {
+        $entries[] = ['title' => sprintf('Cardiology clinic %02d', $number), 'slug' => sprintf('cardiology-%02d', $number)];
+    }
+
+    SearchFixtures::indexEntries($entries);
+
+    // Request both pages
+    $first = $this->get('/search?q=cardiology')->assertOk()
+        ->assertSee('Page 1 of 2')
+        ->assertSee('rel="next"', false)
+        ->assertDontSee('rel="prev"', false)
+        ->getContent();
+    $second = $this->get('/search?q=cardiology&page=2')->assertOk()
+        ->assertSee('Page 2 of 2')
+        ->assertSee('rel="prev"', false)
+        ->assertDontSee('rel="next"', false)
+        ->getContent();
+
+    // Expect a full first page, the remainder on the second, and no hit on both
+    $firstRows = resultRows($first);
+    $secondRows = resultRows($second);
+    expect($firstRows)->toHaveCount(10)
+        ->and($secondRows)->toHaveCount(2)
+        ->and(array_intersect_key($firstRows, $secondRows))->toBe([])
+        ->and(array_keys($firstRows + $secondRows))->toHaveCount(12)
+        // Expect the next link to lead to page two
+        ->and($first)->toContain('href="http://localhost/search?q=cardiology&page=2" rel="next"');
 });
