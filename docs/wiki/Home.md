@@ -1,17 +1,22 @@
-Replace this paragraph with what the add-on does and who it is for.
+Aether Search adds a search page, type-ahead suggestions and the `{{ aether_search }}` tag to a Statamic site. It is part of the Aether ecosystem of UAMS Statamic add-ons. The page is a plain GET form over the search indexes the host already defines, with type tabs, a "this site or all sites" choice, pagination and an optional scoped-subtree mode. It adds no search index of its own.
 
-This wiki holds the documentation: a walkthrough, task guides by role, the reference, and troubleshooting. The [README](https://github.com/UAMS-Web/aether-search#readme) keeps an overview, the requirements and installation.
+Written against v0.4.1.
 
-The pages in this folder are skeletons, one per page shape the `github-wiki` skill describes. Copy each, fill it in, rename it for its subject, and keep Home, the sidebar and the footer listing the same pages under the same labels.
+This wiki holds the walkthrough, the guides, the reference and troubleshooting. The [README](https://github.com/UAMS-Web/aether-search#readme) keeps the overview, the requirements and installation.
 
 ## Getting started
 
 - [Installation (README)](https://github.com/UAMS-Web/aether-search#installation): add the package to a Statamic install.
-- [Walkthrough](Walkthrough.md): a first use of the add-on, from nothing to a visible result.
+- [Walkthrough](Walkthrough.md): from a fresh install to a search page with a type tab and result labels.
 
 ## Guides
 
-- [Task guide](Task-guide.md): one task, the steps, and the reference it used.
+- [Tabs, scopes and labels](Tabs-scopes-and-labels.md): add a type tab, limit it to some collections and label its results.
+- [Search across sites](Search-across-sites.md): how "This site", a tier and "All sites" behave on a multisite install.
+- [Search one section](Search-one-section.md): the scoped-subtree mode.
+- [Search beyond the site](Search-beyond-the-site.md): the external results scope, with Google built in.
+- [Hide entries from suggestions](Hide-entries-from-suggestions.md): bind a visibility rule and pair it with `always_scope`.
+- [Override a card or a frame](Override-a-card-or-a-frame.md): change one result type's card, or wrap the page in host views.
 
 ## Troubleshooting
 
@@ -19,7 +24,11 @@ The pages in this folder are skeletons, one per page shape the `github-wiki` ski
 
 ## Reference
 
-- [Reference](Reference.md): every setting, tag, command or permission of one area.
+- [Configuration](Configuration.md): every key of `config/aether-search.php`.
+- [Search tag](Search-tag.md): the methods of `{{ aether_search }}`.
+- [Routes and request parameters](Routes-and-request-parameters.md): the page, the suggestions route and the query strings they read.
+- [Extension points](Extension-points.md): the interfaces a host binds and the external provider contract.
+- [Type-ahead script](Type-ahead-script.md): registering the Alpine component.
 
 ## Project
 
