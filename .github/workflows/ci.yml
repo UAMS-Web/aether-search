@@ -50,7 +50,7 @@ on:
   # pull request touches. The chain gives that run its default full-run timeout and keeps the
   # 45-minute cap on pull requests. A scheduled run uses the default branch.
   schedule:
-    - cron: '0 8 * * 2'
+    - cron: '17 7 * * 1'
 
 # A new push to a pull request cancels that pull request's stale run.
 concurrency:
